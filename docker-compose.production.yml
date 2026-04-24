@@ -1,0 +1,17 @@
+services:
+  garden:
+    expose:
+      - "3000"
+    ports: []
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.garden.rule=Host(`${GARDEN_HOST:-garden.localhost}`)"
+      - "traefik.http.routers.garden.entrypoints=websecure"
+      - "traefik.http.routers.garden.tls.certresolver=letsencrypt"
+      - "traefik.http.services.garden.loadbalancer.server.port=3000"
+    networks:
+      - web
+
+networks:
+  web:
+    external: true

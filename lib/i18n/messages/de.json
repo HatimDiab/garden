@@ -1,0 +1,66 @@
+{
+  "site": {
+    "title": "Das Gartentagebuch",
+    "tagline": "Seiten aus unserem Garten, Blütenblatt für Blütenblatt."
+  },
+  "nav": {
+    "home": "Start",
+    "journal": "Tagebuch",
+    "gallery": "Galerie",
+    "events": "Termine",
+    "about": "Über uns",
+    "subtitle": "ein Gartentagebuch"
+  },
+  "home": {
+    "openDiary": "Tagebuch öffnen",
+    "wanderGallery": "Durch die Galerie schlendern",
+    "latestPages": "Neueste Seiten",
+    "allEntries": "alle Einträge →",
+    "nothingWritten": "Noch nichts geschrieben — die erste Seite wartet.",
+    "newestAlbum": "Neuestes Album",
+    "wanderPictures": "durch die Bilder wandern →"
+  },
+  "journal": {
+    "eyebrow": "Seiten aus dem Tagebuch",
+    "title": "Tagebuch",
+    "empty": "Noch keine Einträge — die erste Seite wartet.",
+    "readMore": "lesen →"
+  },
+  "gallery": {
+    "eyebrow": "Szenen aus dem Garten",
+    "title": "Galerie",
+    "empty": "Noch keine Alben — nichts zum Durchstöbern.",
+    "albumEmpty": "Dieses Album wartet noch auf seine Fotos.",
+    "backToGallery": "← zurück zur Galerie"
+  },
+  "events": {
+    "eyebrow": "durch das Jahr",
+    "title": "Termine",
+    "upcoming": "Kommend",
+    "noUpcoming": "Keine Termine in Sicht.",
+    "calendar": "Kalender"
+  },
+  "about": {
+    "title": "Über den Garten",
+    "defaultBody": "Dies ist ein kleines Buch über unseren Garten — die Setzlinge, die wir hegen, die Blüten, die uns überraschen, und der langsame Wandel der Jahreszeiten vor unserem Fenster. Willkommen."
+  },
+  "footer": {
+    "tended": "Mit Liebe gepflegt ·"
+  },
+  "fallback": {
+    "badge": "nur auf Englisch"
+  },
+  "admin": {
+    "heading": "Admin",
+    "hello": "Hallo, {name}",
+    "viewSite": "Zur Seite →",
+    "signOut": "Abmelden",
+    "nav": {
+      "overview": "Übersicht",
+      "journal": "Tagebuch",
+      "gallery": "Galerie",
+      "events": "Termine",
+      "settings": "Einstellungen"
+    }
+  }
+}

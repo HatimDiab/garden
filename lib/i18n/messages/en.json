@@ -1,0 +1,66 @@
+{
+  "site": {
+    "title": "The Garden Diary",
+    "tagline": "Pages from our garden, petal by petal."
+  },
+  "nav": {
+    "home": "Home",
+    "journal": "Journal",
+    "gallery": "Gallery",
+    "events": "Events",
+    "about": "About",
+    "subtitle": "a garden diary"
+  },
+  "home": {
+    "openDiary": "Open the diary",
+    "wanderGallery": "Wander the gallery",
+    "latestPages": "Latest pages",
+    "allEntries": "all entries →",
+    "nothingWritten": "Nothing written yet — the first page is waiting.",
+    "newestAlbum": "Newest album",
+    "wanderPictures": "wander the pictures →"
+  },
+  "journal": {
+    "eyebrow": "pages of the diary",
+    "title": "Journal",
+    "empty": "No entries yet — the first page is waiting.",
+    "readMore": "read →"
+  },
+  "gallery": {
+    "eyebrow": "scenes from the garden",
+    "title": "Gallery",
+    "empty": "No albums yet — nothing to wander through.",
+    "albumEmpty": "This album is still waiting for its photos.",
+    "backToGallery": "← back to the gallery"
+  },
+  "events": {
+    "eyebrow": "through the year",
+    "title": "Events",
+    "upcoming": "Upcoming",
+    "noUpcoming": "No events on the horizon.",
+    "calendar": "Calendar"
+  },
+  "about": {
+    "title": "About the garden",
+    "defaultBody": "This is a little book about our garden — the seedlings we nurse, the blooms that surprise us, and the slow turn of the seasons outside our window. Welcome."
+  },
+  "footer": {
+    "tended": "Tended with care ·"
+  },
+  "fallback": {
+    "badge": "only in English"
+  },
+  "admin": {
+    "heading": "Admin",
+    "hello": "Hello, {name}",
+    "viewSite": "View site →",
+    "signOut": "Sign out",
+    "nav": {
+      "overview": "Overview",
+      "journal": "Journal",
+      "gallery": "Gallery",
+      "events": "Events",
+      "settings": "Settings"
+    }
+  }
+}

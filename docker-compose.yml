@@ -1,0 +1,23 @@
+services:
+  garden:
+    build: .
+    image: garden-diary:latest
+    container_name: garden-diary
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      SITE_TITLE: ${SITE_TITLE:-The Garden Diary}
+      SITE_TAGLINE: ${SITE_TAGLINE:-Pages from our garden, petal by petal.}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-gardener}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      NODE_ENV: production
+      DATA_DIR: /data
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

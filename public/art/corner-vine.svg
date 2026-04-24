@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" aria-hidden="true">
+  <g fill="none" stroke="#5b6e4a" stroke-linecap="round" stroke-width="1.6" opacity="0.55">
+    <path d="M-10 330 C 60 250, 100 200, 140 150 S 240 70, 330 -10"/>
+    <path d="M 60 250 q -20 -8 -32 -2"/>
+    <path d="M 100 200 q -20 -10 -32 -4"/>
+    <path d="M 140 150 q -18 -14 -30 -10"/>
+    <path d="M 190 100 q -16 -16 -28 -14"/>
+    <path d="M 240 60 q -14 -18 -26 -18"/>
+  </g>
+  <g opacity="0.75">
+    <g transform="translate(60 250)"><ellipse rx="10" ry="4" fill="#a9bba0" transform="rotate(-30)"/></g>
+    <g transform="translate(100 200)"><ellipse rx="12" ry="5" fill="#a9bba0" transform="rotate(-25)"/></g>
+    <g transform="translate(140 150)"><ellipse rx="11" ry="5" fill="#a9bba0" transform="rotate(-20)"/></g>
+    <g transform="translate(190 100)"><ellipse rx="10" ry="5" fill="#a9bba0" transform="rotate(-12)"/></g>
+    <g transform="translate(30 300)">
+      <circle r="6" fill="#c98a9b"/>
+      <circle r="2" fill="#e3b35a"/>
+    </g>
+    <g transform="translate(220 80)">
+      <circle r="5" fill="#e8c4cb"/>
+      <circle r="1.6" fill="#e3b35a"/>
+    </g>
+  </g>
+</svg>
