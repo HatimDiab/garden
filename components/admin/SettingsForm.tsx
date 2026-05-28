@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { LocaleTabs, type FormLocale } from "@/components/admin/LocaleTabs";
 
 export type SiteData = {
@@ -13,6 +14,21 @@ export type SiteData = {
   aboutTextDe: string;
 };
 
+type Msg = { kind: "ok" | "err"; key: string } | null;
+
+const STRINGS: Record<string, { en: string; de: string }> = {
+  saved: { en: "Saved.", de: "Gespeichert." },
+  pwMismatch: {
+    en: "New passwords don't match.",
+    de: "Die neuen Passwörter stimmen nicht überein.",
+  },
+  pwChanged: {
+    en: "Password changed. Please sign in again.",
+    de: "Passwort geändert. Bitte erneut anmelden.",
+  },
+  signInAgain: { en: "Sign in again", de: "Erneut anmelden" },
+};
+
 export function SettingsForm({
   initial,
   onSaveSite,
@@ -23,40 +39,46 @@ export function SettingsForm({
   onChangePassword: (data: { current: string; next: string }) => Promise<void>;
 }) {
   const [data, setData] = useState<SiteData>(initial);
-  const [siteMsg, setSiteMsg] = useState<string | null>(null);
+  const [siteMsg, setSiteMsg] = useState<Msg>(null);
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
-  const [pwMsg, setPwMsg] = useState<string | null>(null);
+  const [pwMsg, setPwMsg] = useState<Msg>(null);
+  const [pwChanged, setPwChanged] = useState(false);
   const [pending, startTransition] = useTransition();
   const [tab, setTab] = useState<FormLocale>("en");
+
+  const tr = (key: string): string => {
+    const entry = STRINGS[key];
+    if (entry) return tab === "de" ? entry.de : entry.en;
+    return key;
+  };
 
   const saveSite = () => {
     setSiteMsg(null);
     startTransition(async () => {
       try {
         await onSaveSite(data);
-        setSiteMsg("Saved.");
+        setSiteMsg({ kind: "ok", key: "saved" });
       } catch (err) {
-        setSiteMsg((err as Error).message);
+        setSiteMsg({ kind: "err", key: (err as Error).message });
       }
     });
   };
 
   const savePassword = () => {
     setPwMsg(null);
+    setPwChanged(false);
     if (pw.next !== pw.confirm) {
-      setPwMsg("New passwords don't match.");
+      setPwMsg({ kind: "err", key: "pwMismatch" });
       return;
     }
     startTransition(async () => {
       try {
         await onChangePassword({ current: pw.current, next: pw.next });
         setPw({ current: "", next: "", confirm: "" });
-        setPwMsg("Password changed. Please sign in again.");
-        setTimeout(() => {
-          window.location.href = "/admin/login";
-        }, 1000);
+        setPwMsg({ kind: "ok", key: "pwChanged" });
+        setPwChanged(true);
       } catch (err) {
-        setPwMsg((err as Error).message);
+        setPwMsg({ kind: "err", key: (err as Error).message });
       }
     });
   };
@@ -125,7 +147,15 @@ export function SettingsForm({
         <button className="btn" onClick={saveSite} disabled={pending}>
           Save site
         </button>
-        {siteMsg && <p className="text-sm text-moss-deep">{siteMsg}</p>}
+        {siteMsg && (
+          <p
+            className={`text-sm ${
+              siteMsg.kind === "ok" ? "text-moss-deep" : "text-rose"
+            }`}
+          >
+            {tr(siteMsg.key)}
+          </p>
+        )}
       </section>
 
       <section className="paper space-y-4 p-6">
@@ -164,7 +194,23 @@ export function SettingsForm({
         >
           Change password
         </button>
-        {pwMsg && <p className="text-sm text-moss-deep">{pwMsg}</p>}
+        {pwMsg && (
+          <p
+            className={`text-sm ${
+              pwMsg.kind === "ok" ? "text-moss-deep" : "text-rose"
+            }`}
+          >
+            {tr(pwMsg.key)}
+          </p>
+        )}
+        {pwChanged && (
+          <Link
+            href="/admin/login"
+            className="inline-block text-sm text-moss-deep underline"
+          >
+            {tr("signInAgain")} →
+          </Link>
+        )}
       </section>
     </div>
   );

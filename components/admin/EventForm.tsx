@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter as useIntlRouter } from "@/lib/i18n/navigation";
 import { LocaleTabs, type FormLocale } from "@/components/admin/LocaleTabs";
 
 export type EventData = {
@@ -36,7 +36,7 @@ type Props =
     };
 
 export function EventForm(props: Props) {
-  const router = useRouter();
+  const router = useIntlRouter();
   const initial: EventData =
     props.mode === "edit"
       ? props.initial

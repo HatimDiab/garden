@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter as useIntlRouter } from "@/lib/i18n/navigation";
 import type { JSONContent } from "@tiptap/react";
 import { TiptapEditor } from "./TiptapEditor";
 import { LocaleTabs, type FormLocale } from "@/components/admin/LocaleTabs";
@@ -55,7 +55,7 @@ export function EntryForm({
   saveAction: (data: SaveEntryPayload) => Promise<{ id: string; slug: string }>;
   deleteAction?: (id: string) => Promise<void>;
 }) {
-  const router = useRouter();
+  const router = useIntlRouter();
   const [title, setTitle] = useState(entry?.title ?? "");
   const [titleDe, setTitleDe] = useState(entry?.titleDe ?? "");
   const [slug, setSlug] = useState(entry?.slug ?? "");

@@ -5,10 +5,13 @@ import {
 } from "@oslojs/encoding";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { cache } from "react";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { sessions, users } from "@/lib/db/schema";
+import { redirect as intlRedirect } from "@/lib/i18n/navigation";
+import type { Locale } from "@/lib/i18n/routing";
 
 const SESSION_COOKIE = "garden_session";
 const DAY = 1000 * 60 * 60 * 24;
@@ -103,7 +106,10 @@ export const getCurrentUser = cache(async () => {
 
 export async function requireAdmin() {
   const { user } = await getCurrentUser();
-  if (!user) redirect("/admin/login");
+  if (!user) {
+    const locale = (await getLocale()) as Locale;
+    intlRedirect({ href: "/admin/login", locale });
+  }
   return user;
 }
 

@@ -17,7 +17,11 @@ export async function POST(req: NextRequest) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "no file" }, { status: 400 });
   }
-  if (!file.type.startsWith("image/")) {
+  const isImageByMime = file.type.startsWith("image/");
+  const isImageByExt = /\.(jpe?g|png|webp|gif|avif|heic|heif|tiff?)$/i.test(
+    file.name,
+  );
+  if (!isImageByMime && !isImageByExt) {
     return NextResponse.json({ error: "not an image" }, { status: 400 });
   }
   if (file.size > 25 * 1024 * 1024) {

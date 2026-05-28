@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter as useIntlRouter } from "@/lib/i18n/navigation";
 import { LocaleTabs, type FormLocale } from "@/components/admin/LocaleTabs";
 
 type Img = {
@@ -17,6 +17,7 @@ export function AlbumImageGrid({
   coverImageId,
   onSetCover,
   onDelete,
+  onDeleteMany,
   onCaption,
 }: {
   albumId: string;
@@ -24,14 +25,16 @@ export function AlbumImageGrid({
   coverImageId: string | null;
   onSetCover: (albumId: string, imageId: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onDeleteMany: (ids: string[]) => Promise<void>;
   onCaption: (id: string, caption: string, captionDe: string) => Promise<void>;
 }) {
-  const router = useRouter();
+  const router = useIntlRouter();
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState<string | null>(null);
   const [draftEn, setDraftEn] = useState("");
   const [draftDe, setDraftDe] = useState("");
   const [draftTab, setDraftTab] = useState<FormLocale>("en");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const setCover = (id: string) => {
     startTransition(async () => {
@@ -54,6 +57,32 @@ export function AlbumImageGrid({
     });
   };
 
+  const toggleSelected = (id: string) => {
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const clearSelection = () => setSelected(new Set());
+  const selectAll = () => setSelected(new Set(images.map((i) => i.id)));
+  const removeSelected = () => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    if (
+      !window.confirm(
+        `Remove ${ids.length} photo${ids.length === 1 ? "" : "s"}?`,
+      )
+    )
+      return;
+    startTransition(async () => {
+      await onDeleteMany(ids);
+      clearSelection();
+      router.refresh();
+    });
+  };
+
   if (images.length === 0) {
     return (
       <p className="paper mt-4 p-6 text-ink-soft">
@@ -63,19 +92,74 @@ export function AlbumImageGrid({
   }
 
   return (
-    <ul className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+    <div className="mt-4">
+      <div className="flex flex-wrap items-center gap-3 text-xs text-ink-soft">
+        <span>
+          {selected.size > 0
+            ? `${selected.size} selected`
+            : "Click ☐ on photos to select"}
+        </span>
+        {selected.size > 0 ? (
+          <>
+            <button
+              type="button"
+              className="link-soft"
+              onClick={clearSelection}
+              disabled={pending}
+            >
+              clear
+            </button>
+            <button
+              type="button"
+              className="text-rose hover:underline"
+              onClick={removeSelected}
+              disabled={pending}
+            >
+              delete selected
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="link-soft"
+            onClick={selectAll}
+            disabled={pending}
+          >
+            select all
+          </button>
+        )}
+      </div>
+      <ul className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
       {images.map((img) => {
         const isCover = img.id === coverImageId;
+        const isSelected = selected.has(img.id);
         const preview = img.caption || img.captionDe || "Add caption…";
         const draft = draftTab === "en" ? draftEn : draftDe;
         const setDraft = draftTab === "en" ? setDraftEn : setDraftDe;
         return (
-          <li key={img.id} className="paper relative overflow-hidden">
+          <li
+            key={img.id}
+            className={`paper relative overflow-hidden ${
+              isSelected ? "ring-2 ring-moss-deep" : ""
+            }`}
+          >
             <img
               src={`/uploads/${img.filename}`}
               alt={img.caption ?? ""}
               className="h-44 w-full object-cover"
             />
+            <button
+              type="button"
+              aria-label={isSelected ? "Deselect" : "Select"}
+              onClick={() => toggleSelected(img.id)}
+              className={`absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-md text-xs ${
+                isSelected
+                  ? "bg-moss-deep text-cream"
+                  : "bg-white/85 text-ink-soft hover:bg-white"
+              }`}
+            >
+              {isSelected ? "✓" : "☐"}
+            </button>
             {isCover && (
               <span className="absolute left-2 top-2 chip bg-honey/40 text-moss-deep">
                 ✿ cover
@@ -143,6 +227,7 @@ export function AlbumImageGrid({
           </li>
         );
       })}
-    </ul>
+      </ul>
+    </div>
   );
 }
