@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { LocaleTabs, type FormLocale } from "@/components/admin/LocaleTabs";
+import { PasswordInput } from "@/components/admin/PasswordInput";
 
 export type SiteData = {
   siteTitle: string;
@@ -162,27 +163,21 @@ export function SettingsForm({
         <h2 className="font-display text-xl text-moss-deep">Password</h2>
         <label className="block text-sm">
           <span className="text-ink-soft">Current password</span>
-          <input
-            type="password"
-            className="field mt-1"
+          <PasswordInput
             value={pw.current}
             onChange={(e) => setPw({ ...pw, current: e.target.value })}
           />
         </label>
         <label className="block text-sm">
           <span className="text-ink-soft">New password</span>
-          <input
-            type="password"
-            className="field mt-1"
+          <PasswordInput
             value={pw.next}
             onChange={(e) => setPw({ ...pw, next: e.target.value })}
           />
         </label>
         <label className="block text-sm">
           <span className="text-ink-soft">Confirm new password</span>
-          <input
-            type="password"
-            className="field mt-1"
+          <PasswordInput
             value={pw.confirm}
             onChange={(e) => setPw({ ...pw, confirm: e.target.value })}
           />

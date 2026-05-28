@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { settings } from "@/lib/db/schema";
 import { SettingsForm } from "@/components/admin/SettingsForm";
+import { BackupRestore } from "@/components/admin/BackupRestore";
 import { changePassword, saveSiteSettings } from "./actions";
 
 export const metadata = { title: "Settings" };
@@ -33,6 +34,9 @@ export default function SettingsPage() {
           onSaveSite={saveSiteSettings}
           onChangePassword={changePassword}
         />
+      </div>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <BackupRestore />
       </div>
     </div>
   );
