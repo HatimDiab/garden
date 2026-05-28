@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { albums, images } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/auth/session";
@@ -60,14 +60,17 @@ function ensureAlbumSlugDe(
 
 export async function createAlbum(data: AlbumInput) {
   await requireAdmin();
-  if (!data.title.trim()) throw new Error("Title is required");
+  const titleEn = data.title.trim();
+  const titleDe = data.titleDe.trim();
+  if (!titleEn && !titleDe) throw new Error("Title is required");
+  const effectiveEnTitle = titleEn || titleDe;
   const id = randomId();
-  const slug = ensureAlbumSlug(data.slug, data.title);
+  const slug = ensureAlbumSlug(data.slug || data.slugDe, effectiveEnTitle);
   const slugDe = ensureAlbumSlugDe(data.slugDe || data.titleDe, null);
   db.insert(albums)
     .values({
       id,
-      title: data.title.trim(),
+      title: effectiveEnTitle,
       titleDe: nullable(data.titleDe),
       description: data.description.trim(),
       descriptionDe: nullable(data.descriptionDe),
@@ -87,9 +90,13 @@ export async function updateAlbum(
   await requireAdmin();
   const current = db.select().from(albums).where(eq(albums.id, id)).get();
   if (!current) throw new Error("Album not found");
+  const titleEn = data.title.trim();
+  const titleDe = data.titleDe.trim();
+  if (!titleEn && !titleDe) throw new Error("Title is required");
+  const effectiveEnTitle = titleEn || titleDe;
   let slug = current.slug;
   if (data.slug && data.slug !== current.slug) {
-    slug = ensureAlbumSlug(data.slug, data.title);
+    slug = ensureAlbumSlug(data.slug, effectiveEnTitle);
   }
   const newSlugDe = nullable(data.slugDe);
   const slugDe =
@@ -98,7 +105,7 @@ export async function updateAlbum(
       : newSlugDe;
   db.update(albums)
     .set({
-      title: data.title.trim() || current.title,
+      title: effectiveEnTitle,
       titleDe: nullable(data.titleDe),
       description: data.description.trim(),
       descriptionDe: nullable(data.descriptionDe),
@@ -128,6 +135,15 @@ export async function deleteImage(imageId: string) {
   if (!img) return;
   await deleteImageFiles(img.filename);
   db.delete(images).where(eq(images.id, imageId)).run();
+  revalidatePath("/", "layout");
+}
+
+export async function deleteImages(imageIds: string[]) {
+  await requireAdmin();
+  if (imageIds.length === 0) return;
+  const rows = db.select().from(images).where(inArray(images.id, imageIds)).all();
+  for (const row of rows) await deleteImageFiles(row.filename);
+  db.delete(images).where(inArray(images.id, imageIds)).run();
   revalidatePath("/", "layout");
 }
 

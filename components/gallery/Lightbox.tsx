@@ -58,7 +58,7 @@ export function LightboxGallery({ images }: { images: GalleryImage[] }) {
           <button
             key={img.id}
             onClick={() => setIndex(i)}
-            className="group overflow-hidden rounded-xl"
+            className="group relative overflow-hidden rounded-xl"
             aria-label={img.caption ?? "photo"}
           >
             <img
@@ -67,6 +67,18 @@ export function LightboxGallery({ images }: { images: GalleryImage[] }) {
               className="h-56 w-full object-cover transition duration-500 group-hover:scale-105"
               loading={i < 6 ? "eager" : "lazy"}
             />
+            <span
+              className="pointer-events-none absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-ink/70 via-ink/0 to-transparent p-3 text-left opacity-0 transition duration-300 group-hover:opacity-100 group-focus-visible:opacity-100 motion-safe:translate-y-1 motion-safe:group-hover:translate-y-0"
+            >
+              {img.caption && (
+                <span className="line-clamp-2 text-sm text-cream">
+                  {img.caption}
+                </span>
+              )}
+              <span className="mt-1 text-[10px] uppercase tracking-[0.25em] text-cream/80">
+                ↗ view
+              </span>
+            </span>
           </button>
         ))}
       </div>

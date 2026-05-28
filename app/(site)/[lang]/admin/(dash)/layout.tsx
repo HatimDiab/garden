@@ -1,18 +1,21 @@
+import { getLocale } from "next-intl/server";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import {
   clearSessionCookie,
   getCurrentUser,
   invalidateSession,
 } from "@/lib/auth/session";
 import { Sprig } from "@/components/watercolor/Divider";
+import { redirect } from "@/lib/i18n/navigation";
+import type { Locale } from "@/lib/i18n/routing";
 
 async function logout() {
   "use server";
   const { session } = await getCurrentUser();
   if (session) await invalidateSession(session.id);
   await clearSessionCookie();
-  redirect("/admin/login");
+  const locale = (await getLocale()) as Locale;
+  redirect({ href: "/admin/login", locale });
 }
 
 export default async function DashLayout({
@@ -21,7 +24,10 @@ export default async function DashLayout({
   children: React.ReactNode;
 }) {
   const { user } = await getCurrentUser();
-  if (!user) redirect("/admin/login");
+  if (!user) {
+    const locale = (await getLocale()) as Locale;
+    redirect({ href: "/admin/login", locale });
+  }
 
   const tabs = [
     { href: "/admin", label: "Overview" },
@@ -39,7 +45,7 @@ export default async function DashLayout({
           <span className="font-display text-2xl text-moss-deep">Admin</span>
         </Link>
         <div className="flex items-center gap-3 text-sm text-ink-soft">
-          <span>Hello, {user.username}</span>
+          <span>Hello, {user!.username}</span>
           <Link href="/" className="link-soft">
             View site →
           </Link>

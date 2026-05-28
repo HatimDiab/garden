@@ -8,6 +8,7 @@ import { AlbumImageGrid } from "@/components/admin/AlbumImageGrid";
 import {
   deleteAlbum,
   deleteImage,
+  deleteImages,
   setCoverImage,
   updateAlbum,
   updateImageCaption,
@@ -66,6 +67,7 @@ export default async function EditAlbumPage({
             coverImageId={album.coverImageId}
             onSetCover={setCoverImage}
             onDelete={deleteImage}
+            onDeleteMany={deleteImages}
             onCaption={updateImageCaption}
           />
         </div>

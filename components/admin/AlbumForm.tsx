@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter as useIntlRouter } from "@/lib/i18n/navigation";
+import { useLocale } from "next-intl";
 import { LocaleTabs, type FormLocale } from "@/components/admin/LocaleTabs";
 
 type AlbumInput = {
@@ -39,7 +40,8 @@ function slugify(s: string): string {
 }
 
 export function AlbumForm(props: Props) {
-  const router = useRouter();
+  const router = useIntlRouter();
+  const locale = useLocale();
   const initial: AlbumInput =
     props.mode === "edit"
       ? props.album
@@ -180,7 +182,7 @@ export function AlbumForm(props: Props) {
         <button
           type="button"
           className="btn"
-          disabled={pending || !title.trim()}
+          disabled={pending || (!title.trim() && !titleDe.trim())}
           onClick={save}
         >
           {pending

@@ -43,11 +43,11 @@ export async function changePassword(data: {
 }) {
   const user = await requireAdmin();
   if (data.next.length < 8) throw new Error("Password must be at least 8 characters.");
-  const row = db.select().from(users).where(eq(users.id, user.id)).get();
+  const row = db.select().from(users).where(eq(users.id, user!.id)).get();
   if (!row) throw new Error("User missing");
   const ok = await verifyPassword(row.passwordHash, data.current);
   if (!ok) throw new Error("Current password is incorrect.");
   const next = await hashPassword(data.next);
-  db.update(users).set({ passwordHash: next }).where(eq(users.id, user.id)).run();
-  await invalidateAllUserSessions(user.id);
+  db.update(users).set({ passwordHash: next }).where(eq(users.id, user!.id)).run();
+  await invalidateAllUserSessions(user!.id);
 }

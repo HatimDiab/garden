@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { useRouter } from "next/navigation";
+import { useRouter as useIntlRouter } from "@/lib/i18n/navigation";
 
 type Uploaded = { id: string; filename: string };
 
 export function AlbumUploader({ albumId }: { albumId: string }) {
-  const router = useRouter();
+  const router = useIntlRouter();
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [queue, setQueue] = useState<{ name: string; done: boolean }[]>([]);
@@ -45,9 +45,36 @@ export function AlbumUploader({ albumId }: { albumId: string }) {
     [albumId, router],
   );
 
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && /^(INPUT|TEXTAREA)$/.test(target.tagName)) return;
+      if (target && target.isContentEditable) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      const files: File[] = [];
+      for (const item of items) {
+        if (item.kind !== "file") continue;
+        const f = item.getAsFile();
+        if (!f) continue;
+        const isImage =
+          f.type.startsWith("image/") || /\.(heic|heif)$/i.test(f.name);
+        if (isImage) files.push(f);
+      }
+      if (files.length > 0) {
+        e.preventDefault();
+        void onDrop(files);
+      }
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [onDrop]);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { "image/*": [] },
+    accept: {
+      "image/*": [".heic", ".heif"],
+    },
     disabled: busy,
   });
 
@@ -61,10 +88,10 @@ export function AlbumUploader({ albumId }: { albumId: string }) {
       >
         <input {...getInputProps()} />
         <p className="font-display text-xl text-moss-deep">
-          {isDragActive ? "Drop to plant…" : "Drop photos here, or click to choose"}
+          {isDragActive ? "Drop to plant…" : "Drop photos here, click to choose, or paste"}
         </p>
         <p className="mt-1 text-sm text-ink-soft">
-          JPG, PNG, HEIC, WebP — we&apos;ll resize everything.
+          JPG, PNG, HEIC, WebP — paste with ⌘V / Ctrl+V too.
         </p>
       </div>
       {queue.length > 0 && (
