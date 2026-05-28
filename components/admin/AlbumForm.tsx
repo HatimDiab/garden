@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter as useIntlRouter } from "@/lib/i18n/navigation";
-import { useLocale } from "next-intl";
 import { LocaleTabs, type FormLocale } from "@/components/admin/LocaleTabs";
 
 type AlbumInput = {
@@ -40,8 +40,8 @@ function slugify(s: string): string {
 }
 
 export function AlbumForm(props: Props) {
+  const t = useTranslations("admin.forms.album");
   const router = useIntlRouter();
-  const locale = useLocale();
   const initial: AlbumInput =
     props.mode === "edit"
       ? props.album
@@ -97,12 +97,7 @@ export function AlbumForm(props: Props) {
 
   const remove = () => {
     if (props.mode !== "edit") return;
-    if (
-      !window.confirm(
-        "Delete this album and every photo inside it? This cannot be undone.",
-      )
-    )
-      return;
+    if (!window.confirm(t("deleteConfirm"))) return;
     startTransition(async () => {
       await props.onDelete(props.album.id);
       router.push("/admin/gallery");
@@ -128,13 +123,13 @@ export function AlbumForm(props: Props) {
     <div className="paper space-y-4 p-6">
       <div className="flex items-center justify-between">
         <span className="text-xs uppercase tracking-widest text-ink-soft">
-          Bilingual fields
+          {t("bilingual")}
         </span>
         <LocaleTabs value={tab} onChange={setTab} />
       </div>
       <label className="block">
         <span className="text-sm text-ink-soft">
-          Title ({tab.toUpperCase()})
+          {t("title", { tab: tab.toUpperCase() })}
         </span>
         <input
           className="field mt-1"
@@ -144,10 +139,10 @@ export function AlbumForm(props: Props) {
       </label>
       <label className="block">
         <span className="text-sm text-ink-soft">
-          Slug ({tab.toUpperCase()})
+          {t("slug", { tab: tab.toUpperCase() })}
           {tab === "de" && (
             <span className="ml-2 text-xs text-ink-soft/70">
-              optional — leave blank to share the EN slug
+              {t("slugOptional")}
             </span>
           )}
         </span>
@@ -159,7 +154,7 @@ export function AlbumForm(props: Props) {
       </label>
       <label className="block">
         <span className="text-sm text-ink-soft">
-          Description ({tab.toUpperCase()}, optional)
+          {t("description", { tab: tab.toUpperCase() })}
         </span>
         <textarea
           className="field mt-1"
@@ -169,7 +164,7 @@ export function AlbumForm(props: Props) {
         />
       </label>
       <label className="block">
-        <span className="text-sm text-ink-soft">Date (optional)</span>
+        <span className="text-sm text-ink-soft">{t("date")}</span>
         <input
           type="date"
           className="field mt-1"
@@ -186,10 +181,10 @@ export function AlbumForm(props: Props) {
           onClick={save}
         >
           {pending
-            ? "Saving…"
+            ? t("saving")
             : props.mode === "create"
-              ? "Create album"
-              : "Save changes"}
+              ? t("create")
+              : t("save")}
         </button>
         {props.mode === "edit" && (
           <button
@@ -198,7 +193,7 @@ export function AlbumForm(props: Props) {
             disabled={pending}
             onClick={remove}
           >
-            Delete album
+            {t("delete")}
           </button>
         )}
       </div>

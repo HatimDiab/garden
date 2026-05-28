@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter as useIntlRouter } from "@/lib/i18n/navigation";
 import { LocaleTabs, type FormLocale } from "@/components/admin/LocaleTabs";
 
@@ -28,6 +29,7 @@ export function AlbumImageGrid({
   onDeleteMany: (ids: string[]) => Promise<void>;
   onCaption: (id: string, caption: string, captionDe: string) => Promise<void>;
 }) {
+  const t = useTranslations("admin.forms.albumGrid");
   const router = useIntlRouter();
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState<string | null>(null);
@@ -43,7 +45,7 @@ export function AlbumImageGrid({
     });
   };
   const remove = (id: string) => {
-    if (!window.confirm("Remove this photo?")) return;
+    if (!window.confirm(t("removeConfirm"))) return;
     startTransition(async () => {
       await onDelete(id);
       router.refresh();
@@ -70,12 +72,7 @@ export function AlbumImageGrid({
   const removeSelected = () => {
     const ids = Array.from(selected);
     if (ids.length === 0) return;
-    if (
-      !window.confirm(
-        `Remove ${ids.length} photo${ids.length === 1 ? "" : "s"}?`,
-      )
-    )
-      return;
+    if (!window.confirm(t("removeManyConfirm", { count: ids.length }))) return;
     startTransition(async () => {
       await onDeleteMany(ids);
       clearSelection();
@@ -86,7 +83,7 @@ export function AlbumImageGrid({
   if (images.length === 0) {
     return (
       <p className="paper mt-4 p-6 text-ink-soft">
-        No photos yet — drop some above.
+        {t("empty")}
       </p>
     );
   }
@@ -96,8 +93,8 @@ export function AlbumImageGrid({
       <div className="flex flex-wrap items-center gap-3 text-xs text-ink-soft">
         <span>
           {selected.size > 0
-            ? `${selected.size} selected`
-            : "Click ☐ on photos to select"}
+            ? t("selectedCount", { count: selected.size })
+            : t("clickHint")}
         </span>
         {selected.size > 0 ? (
           <>
@@ -107,7 +104,7 @@ export function AlbumImageGrid({
               onClick={clearSelection}
               disabled={pending}
             >
-              clear
+              {t("clear")}
             </button>
             <button
               type="button"
@@ -115,7 +112,7 @@ export function AlbumImageGrid({
               onClick={removeSelected}
               disabled={pending}
             >
-              delete selected
+              {t("deleteSelected")}
             </button>
           </>
         ) : (
@@ -125,7 +122,7 @@ export function AlbumImageGrid({
             onClick={selectAll}
             disabled={pending}
           >
-            select all
+            {t("selectAll")}
           </button>
         )}
       </div>
@@ -150,7 +147,7 @@ export function AlbumImageGrid({
             />
             <button
               type="button"
-              aria-label={isSelected ? "Deselect" : "Select"}
+              aria-label={isSelected ? t("deselectAria") : t("selectAria")}
               onClick={() => toggleSelected(img.id)}
               className={`absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-md text-xs ${
                 isSelected
@@ -162,7 +159,7 @@ export function AlbumImageGrid({
             </button>
             {isCover && (
               <span className="absolute left-2 top-2 chip bg-honey/40 text-moss-deep">
-                ✿ cover
+                {t("cover")}
               </span>
             )}
             <div className="p-2">
@@ -176,7 +173,7 @@ export function AlbumImageGrid({
                   <div className="flex gap-1">
                     <input
                       className="field text-xs"
-                      placeholder={`caption (${draftTab.toUpperCase()})`}
+                      placeholder={t("captionPlaceholder", { tab: draftTab.toUpperCase() })}
                       value={draft}
                       onChange={(e) => setDraft(e.target.value)}
                       autoFocus
@@ -186,7 +183,7 @@ export function AlbumImageGrid({
                       disabled={pending}
                       onClick={() => saveCaption(img.id)}
                     >
-                      save
+                      {t("save")}
                     </button>
                   </div>
                 </div>
@@ -210,7 +207,7 @@ export function AlbumImageGrid({
                     disabled={pending}
                     onClick={() => setCover(img.id)}
                   >
-                    make cover
+                    {t("makeCover")}
                   </button>
                 ) : (
                   <span />
@@ -220,7 +217,7 @@ export function AlbumImageGrid({
                   disabled={pending}
                   onClick={() => remove(img.id)}
                 >
-                  remove
+                  {t("remove")}
                 </button>
               </div>
             </div>

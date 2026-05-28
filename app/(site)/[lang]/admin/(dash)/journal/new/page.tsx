@@ -1,14 +1,23 @@
+import { getLocale, getTranslations } from "next-intl/server";
 import { EntryForm } from "@/components/editor/EntryForm";
 import { saveEntry } from "../actions";
+import type { Locale } from "@/lib/i18n/routing";
 
-export const metadata = { title: "New entry" };
+export async function generateMetadata() {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations({ locale, namespace: "admin.journal.new" });
+  return { title: t("metaTitle") };
+}
 
-export default function NewEntryPage() {
+export default async function NewEntryPage() {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations({ locale, namespace: "admin.journal.new" });
+
   return (
     <div>
-      <h1 className="font-display text-3xl text-moss-deep">New entry</h1>
+      <h1 className="font-display text-3xl text-moss-deep">{t("heading")}</h1>
       <p className="mt-1 text-sm text-ink-soft">
-        A fresh page. Tell today&apos;s story.
+        {t("subhead")}
       </p>
       <div className="mt-6">
         <EntryForm saveAction={saveEntry} />

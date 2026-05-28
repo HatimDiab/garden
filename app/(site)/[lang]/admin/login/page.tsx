@@ -1,4 +1,4 @@
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { users } from "@/lib/db/schema";
@@ -14,7 +14,11 @@ import { PasswordInput } from "@/components/admin/PasswordInput";
 import { redirect } from "@/lib/i18n/navigation";
 import type { Locale } from "@/lib/i18n/routing";
 
-export const metadata = { title: "Sign in" };
+export async function generateMetadata() {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations({ locale, namespace: "admin.login" });
+  return { title: t("metaTitle") };
+}
 
 async function login(formData: FormData) {
   "use server";
@@ -52,24 +56,23 @@ export default async function LoginPage({
   const { user } = await getCurrentUser();
   if (user) redirect({ href: "/admin", locale });
   const { error } = await searchParams;
+  const t = await getTranslations({ locale, namespace: "admin.login" });
   const msg =
     error === "invalid"
-      ? "Those details didn't match. Try again."
+      ? t("errorInvalid")
       : error === "missing"
-        ? "Please fill in both fields."
+        ? t("errorMissing")
         : null;
 
   return (
     <main className="relative mx-auto flex min-h-[80vh] w-full max-w-md flex-col items-center justify-center px-6">
       <Bloom size={120} />
       <div className="paper mt-6 w-full p-8">
-        <h1 className="text-center text-3xl text-moss-deep">Welcome back</h1>
-        <p className="mt-1 text-center text-sm text-ink-soft">
-          Sign in to tend the diary.
-        </p>
+        <h1 className="text-center text-3xl text-moss-deep">{t("heading")}</h1>
+        <p className="mt-1 text-center text-sm text-ink-soft">{t("subhead")}</p>
         <form action={login} className="mt-6 space-y-3">
           <label className="block">
-            <span className="text-sm text-ink-soft">Username</span>
+            <span className="text-sm text-ink-soft">{t("username")}</span>
             <input
               name="username"
               className="field mt-1"
@@ -79,7 +82,7 @@ export default async function LoginPage({
             />
           </label>
           <label className="block">
-            <span className="text-sm text-ink-soft">Password</span>
+            <span className="text-sm text-ink-soft">{t("password")}</span>
             <PasswordInput
               name="password"
               autoComplete="current-password"
@@ -88,7 +91,7 @@ export default async function LoginPage({
           </label>
           {msg && <p className="text-sm text-rose">{msg}</p>}
           <button className="btn w-full" type="submit">
-            Sign in
+            {t("submit")}
           </button>
         </form>
       </div>

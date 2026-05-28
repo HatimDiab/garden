@@ -1,12 +1,11 @@
-import { getLocale } from "next-intl/server";
-import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 import {
   clearSessionCookie,
   getCurrentUser,
   invalidateSession,
 } from "@/lib/auth/session";
 import { Sprig } from "@/components/watercolor/Divider";
-import { redirect } from "@/lib/i18n/navigation";
+import { Link, redirect } from "@/lib/i18n/navigation";
 import type { Locale } from "@/lib/i18n/routing";
 
 async function logout() {
@@ -24,17 +23,18 @@ export default async function DashLayout({
   children: React.ReactNode;
 }) {
   const { user } = await getCurrentUser();
+  const locale = (await getLocale()) as Locale;
   if (!user) {
-    const locale = (await getLocale()) as Locale;
     redirect({ href: "/admin/login", locale });
   }
+  const t = await getTranslations({ locale, namespace: "admin" });
 
   const tabs = [
-    { href: "/admin", label: "Overview" },
-    { href: "/admin/journal", label: "Journal" },
-    { href: "/admin/gallery", label: "Gallery" },
-    { href: "/admin/events", label: "Events" },
-    { href: "/admin/settings", label: "Settings" },
+    { href: "/admin", label: t("nav.overview") },
+    { href: "/admin/journal", label: t("nav.journal") },
+    { href: "/admin/gallery", label: t("nav.gallery") },
+    { href: "/admin/events", label: t("nav.events") },
+    { href: "/admin/settings", label: t("nav.settings") },
   ];
 
   return (
@@ -42,26 +42,28 @@ export default async function DashLayout({
       <header className="flex flex-wrap items-center justify-between gap-4">
         <Link href="/admin" className="flex items-center gap-3">
           <Sprig />
-          <span className="font-display text-2xl text-moss-deep">Admin</span>
+          <span className="font-display text-2xl text-moss-deep">
+            {t("heading")}
+          </span>
         </Link>
         <div className="flex items-center gap-3 text-sm text-ink-soft">
-          <span>Hello, {user!.username}</span>
+          <span>{t("hello", { name: user!.username })}</span>
           <Link href="/" className="link-soft">
-            View site →
+            {t("viewSite")}
           </Link>
           <form action={logout}>
-            <button className="btn-ghost btn text-sm">Sign out</button>
+            <button className="btn-ghost btn text-sm">{t("signOut")}</button>
           </form>
         </div>
       </header>
       <nav className="mt-6 flex flex-wrap gap-2 border-b border-sage/30 pb-3 text-sm">
-        {tabs.map((t) => (
+        {tabs.map((tab) => (
           <Link
-            key={t.href}
-            href={t.href}
+            key={tab.href}
+            href={tab.href}
             className="rounded-full px-3 py-1.5 text-ink-soft transition hover:bg-sage/20 hover:text-moss-deep"
           >
-            {t.label}
+            {tab.label}
           </Link>
         ))}
       </nav>

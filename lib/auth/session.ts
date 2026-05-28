@@ -3,8 +3,7 @@ import {
   encodeBase32LowerCaseNoPadding,
   encodeHexLowerCase,
 } from "@oslojs/encoding";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { cookies, headers } from "next/headers";
 import { getLocale } from "next-intl/server";
 import { cache } from "react";
 import { and, eq } from "drizzle-orm";
@@ -81,12 +80,20 @@ export async function invalidateAllUserSessions(userId: string): Promise<void> {
   db.delete(sessions).where(eq(sessions.userId, userId)).run();
 }
 
+async function isRequestSecure(): Promise<boolean> {
+  const h = await headers();
+  const proto = h.get("x-forwarded-proto");
+  if (proto) return proto.split(",")[0].trim() === "https";
+  const host = h.get("host") ?? "";
+  return host.endsWith(":443") || host === "localhost" || host.startsWith("localhost:");
+}
+
 export async function setSessionCookie(token: string, expiresAt: Date) {
   const store = await cookies();
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: await isRequestSecure(),
     path: "/",
     expires: expiresAt,
   });

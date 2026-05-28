@@ -1,10 +1,12 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type Msg = { kind: "ok" | "err"; text: string } | null;
 
 export function BackupRestore() {
+  const t = useTranslations("admin.forms.backup");
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<"backup" | "restore" | null>(null);
   const [msg, setMsg] = useState<Msg>(null);
@@ -41,12 +43,10 @@ export function BackupRestore() {
   const onRestore = async () => {
     const file = fileRef.current?.files?.[0];
     if (!file) {
-      setMsg({ kind: "err", text: "Choose a .db backup file first." });
+      setMsg({ kind: "err", text: t("chooseFile") });
       return;
     }
-    const confirmed = window.confirm(
-      "Restoring will replace the current database and restart the app. The current DB will be saved as garden.db.bak-<timestamp> in the data directory. Continue?",
-    );
+    const confirmed = window.confirm(t("restoreConfirm"));
     if (!confirmed) return;
 
     setMsg(null);
@@ -78,11 +78,9 @@ export function BackupRestore() {
 
   return (
     <section className="paper space-y-4 p-6">
-      <h2 className="font-display text-xl text-moss-deep">Database</h2>
+      <h2 className="font-display text-xl text-moss-deep">{t("heading")}</h2>
       <p className="text-sm text-ink-soft">
-        Download a snapshot of the SQLite database, or restore a previous one.
-        Uploads are <em>not</em> included — use <code>make backup</code> on the
-        host for a full tarball.
+        {t("description")}
       </p>
 
       <div className="space-y-2">
@@ -92,13 +90,13 @@ export function BackupRestore() {
           disabled={busy !== null}
           type="button"
         >
-          {busy === "backup" ? "Preparing…" : "Download backup"}
+          {busy === "backup" ? t("downloading") : t("download")}
         </button>
       </div>
 
       <div className="space-y-2 border-t border-sage/30 pt-4">
         <label className="block text-sm">
-          <span className="text-ink-soft">Restore from .db file</span>
+          <span className="text-ink-soft">{t("restoreLabel")}</span>
           <input
             ref={fileRef}
             type="file"
@@ -113,7 +111,7 @@ export function BackupRestore() {
           disabled={busy !== null}
           type="button"
         >
-          {busy === "restore" ? "Restoring…" : "Restore (restarts app)"}
+          {busy === "restore" ? t("restoring") : t("restore")}
         </button>
       </div>
 

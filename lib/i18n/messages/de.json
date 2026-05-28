@@ -61,6 +61,193 @@
       "gallery": "Galerie",
       "events": "Termine",
       "settings": "Einstellungen"
+    },
+    "login": {
+      "metaTitle": "Anmelden",
+      "heading": "Willkommen zurück",
+      "subhead": "Melde dich an, um das Tagebuch zu pflegen.",
+      "username": "Benutzername",
+      "password": "Passwort",
+      "submit": "Anmelden",
+      "errorInvalid": "Diese Angaben passten nicht. Bitte erneut versuchen.",
+      "errorMissing": "Bitte beide Felder ausfüllen."
+    },
+    "overview": {
+      "metaTitle": "Übersicht",
+      "quickPlant": "Schnell einpflanzen",
+      "quickPlantSub": "Starte etwas Neues.",
+      "newEntry": "✿ Neuer Tagebucheintrag",
+      "newAlbum": "❁ Neues Album",
+      "newEvent": "☀ Neuer Termin",
+      "recentEntries": "Neueste Tagebuch-Einträge",
+      "recentEntriesEmpty": "Noch keine Einträge — beginne die erste Seite.",
+      "albums": "Alben",
+      "albumsEmpty": "Noch keine Alben.",
+      "upcomingEvents": "Kommende Termine",
+      "upcomingEventsEmpty": "Nichts geplant.",
+      "view": "ansehen →",
+      "untitled": "Ohne Titel",
+      "statusDraft": "Entwurf",
+      "statusPublished": "veröffentlicht"
+    },
+    "journal": {
+      "list": {
+        "metaTitle": "Tagebuch",
+        "heading": "Tagebuch",
+        "newButton": "✿ Neuer Eintrag",
+        "empty": "Noch keine Einträge — schreibe die erste Seite.",
+        "updated": "aktualisiert {date}"
+      },
+      "new": {
+        "metaTitle": "Neuer Eintrag",
+        "heading": "Neuer Eintrag",
+        "subhead": "Eine frische Seite. Erzähle die Geschichte des heutigen Tages."
+      },
+      "edit": {
+        "metaTitle": "Eintrag bearbeiten",
+        "heading": "Eintrag bearbeiten"
+      }
+    },
+    "gallery": {
+      "list": {
+        "metaTitle": "Galerie",
+        "heading": "Galerie",
+        "newButton": "❁ Neues Album",
+        "empty": "Noch keine Alben — sammel den ersten Strauß."
+      },
+      "new": {
+        "metaTitle": "Neues Album",
+        "heading": "Neues Album",
+        "subhead": "Wähle einen Namen und ein Datum. Fotos kannst du danach hinzufügen."
+      },
+      "edit": {
+        "metaTitle": "Album bearbeiten",
+        "heading": "Album bearbeiten"
+      }
+    },
+    "events": {
+      "list": {
+        "metaTitle": "Termine",
+        "heading": "Termine",
+        "newButton": "☀ Neuer Termin",
+        "empty": "Noch keine Termine."
+      },
+      "new": {
+        "metaTitle": "Neuer Termin",
+        "heading": "Neuer Termin"
+      },
+      "edit": {
+        "metaTitle": "Termin bearbeiten",
+        "heading": "Termin bearbeiten"
+      }
+    },
+    "settings": {
+      "metaTitle": "Einstellungen",
+      "heading": "Einstellungen",
+      "form": {
+        "siteSection": "Seite",
+        "passwordSection": "Passwort",
+        "siteTitle": "Seitentitel ({tab})",
+        "tagline": "Untertitel ({tab})",
+        "activeSeason": "Aktuelle Jahreszeit",
+        "aboutText": "Über-uns-Text ({tab})",
+        "saveSite": "Seite speichern",
+        "currentPassword": "Aktuelles Passwort",
+        "newPassword": "Neues Passwort",
+        "confirmPassword": "Neues Passwort bestätigen",
+        "changePassword": "Passwort ändern",
+        "saved": "Gespeichert.",
+        "pwMismatch": "Die neuen Passwörter stimmen nicht überein.",
+        "pwChanged": "Passwort geändert. Bitte erneut anmelden.",
+        "signInAgain": "Erneut anmelden"
+      }
+    },
+    "forms": {
+      "entry": {
+        "titlePlaceholder": "Ein Titel für diese Seite…",
+        "bodyPlaceholder": "Heute im Garten…",
+        "bilingual": "Zweisprachige Inhalte",
+        "publishHeading": "Veröffentlichen",
+        "currentStatus": "Aktueller Status:",
+        "statusDraft": "Entwurf",
+        "statusPublished": "veröffentlicht",
+        "publish": "Veröffentlichen",
+        "saveDraft": "Als Entwurf speichern",
+        "delete": "Eintrag löschen",
+        "deleteConfirm": "Diesen Eintrag löschen? Das kann nicht rückgängig gemacht werden.",
+        "detailsHeading": "Details ({tab})",
+        "slug": "Slug",
+        "slugOptional": "optional",
+        "excerpt": "Auszug",
+        "tags": "Tags (kommagetrennt)",
+        "tagsPlaceholder": "tulpen, frühling, südbeet",
+        "saving": "Wird gespeichert…"
+      },
+      "album": {
+        "bilingual": "Zweisprachige Felder",
+        "title": "Titel ({tab})",
+        "slug": "Slug ({tab})",
+        "slugOptional": "optional — leer lassen, um den EN-Slug zu verwenden",
+        "description": "Beschreibung ({tab}, optional)",
+        "date": "Datum",
+        "dateOptional": "optional",
+        "saving": "Wird gespeichert…",
+        "create": "Album erstellen",
+        "save": "Änderungen speichern",
+        "delete": "Album löschen",
+        "deleteConfirm": "Dieses Album und alle darin enthaltenen Fotos löschen? Das kann nicht rückgängig gemacht werden."
+      },
+      "albumUploader": {
+        "drop": "Fotos hier ablegen, klicken zum Auswählen oder einfügen",
+        "formats": "JPG, PNG, HEIC, WebP — auch per ⌘V / Strg+V einfügen."
+      },
+      "albumGrid": {
+        "bilingual": "Zweisprachige Beschriftung",
+        "captionPlaceholder": "Beschriftung ({tab})",
+        "save": "speichern",
+        "empty": "Noch keine Fotos — lege oben welche ab.",
+        "selectedCount": "{count} ausgewählt",
+        "clickHint": "Klicke auf ☐ bei Fotos zum Auswählen",
+        "clear": "Auswahl aufheben",
+        "deleteSelected": "Auswahl löschen",
+        "selectAll": "alle auswählen",
+        "selectAria": "Auswählen",
+        "deselectAria": "Abwählen",
+        "cover": "✿ Titelbild",
+        "makeCover": "als Titelbild",
+        "remove": "entfernen",
+        "removeConfirm": "Dieses Foto entfernen?",
+        "removeManyConfirm": "{count} Foto(s) entfernen?"
+      },
+      "event": {
+        "bilingual": "Zweisprachige Felder",
+        "title": "Titel ({tab})",
+        "description": "Beschreibung ({tab})",
+        "starts": "Beginn",
+        "ends": "Ende",
+        "endsOptional": "optional",
+        "linkAlbum": "Album verknüpfen",
+        "linkAlbumOptional": "optional",
+        "linkEntry": "Eintrag verknüpfen",
+        "linkEntryOptional": "optional",
+        "none": "—",
+        "saving": "Wird gespeichert…",
+        "create": "Termin erstellen",
+        "save": "Änderungen speichern",
+        "delete": "Termin löschen",
+        "deleteConfirm": "Diesen Termin löschen?"
+      },
+      "backup": {
+        "heading": "Datenbank",
+        "description": "Lade einen Schnappschuss der SQLite-Datenbank herunter oder stelle eine frühere wieder her. Uploads sind nicht enthalten — nutze make backup auf dem Host für ein vollständiges Archiv.",
+        "download": "Backup herunterladen",
+        "downloading": "Wird vorbereitet…",
+        "restoreLabel": "Aus .db-Datei wiederherstellen",
+        "restore": "Wiederherstellen (startet App neu)",
+        "restoring": "Wird wiederhergestellt…",
+        "restoreConfirm": "Die Wiederherstellung ersetzt die aktuelle Datenbank und startet die App neu. Die aktuelle DB wird als garden.db.bak-<Zeitstempel> im Datenverzeichnis gesichert. Fortfahren?",
+        "chooseFile": "Bitte zuerst eine .db-Backup-Datei auswählen."
+      }
     }
   }
 }

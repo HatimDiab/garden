@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useDropzone } from "react-dropzone";
 import { useRouter as useIntlRouter } from "@/lib/i18n/navigation";
 
 type Uploaded = { id: string; filename: string };
 
 export function AlbumUploader({ albumId }: { albumId: string }) {
+  const t = useTranslations("admin.forms.albumUploader");
   const router = useIntlRouter();
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -88,10 +90,10 @@ export function AlbumUploader({ albumId }: { albumId: string }) {
       >
         <input {...getInputProps()} />
         <p className="font-display text-xl text-moss-deep">
-          {isDragActive ? "Drop to plant…" : "Drop photos here, click to choose, or paste"}
+          {isDragActive ? "Drop to plant…" : t("drop")}
         </p>
         <p className="mt-1 text-sm text-ink-soft">
-          JPG, PNG, HEIC, WebP — paste with ⌘V / Ctrl+V too.
+          {t("formats")}
         </p>
       </div>
       {queue.length > 0 && (

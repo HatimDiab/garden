@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter as useIntlRouter } from "@/lib/i18n/navigation";
 import { LocaleTabs, type FormLocale } from "@/components/admin/LocaleTabs";
 
@@ -36,6 +37,7 @@ type Props =
     };
 
 export function EventForm(props: Props) {
+  const t = useTranslations("admin.forms.event");
   const router = useIntlRouter();
   const initial: EventData =
     props.mode === "edit"
@@ -91,7 +93,7 @@ export function EventForm(props: Props) {
 
   const remove = () => {
     if (props.mode !== "edit") return;
-    if (!window.confirm("Delete this event?")) return;
+    if (!window.confirm(t("deleteConfirm"))) return;
     startTransition(async () => {
       await props.onDelete(props.id);
       router.push("/admin/events");
@@ -107,13 +109,13 @@ export function EventForm(props: Props) {
     <div className="paper space-y-4 p-6">
       <div className="flex items-center justify-between">
         <span className="text-xs uppercase tracking-widest text-ink-soft">
-          Bilingual fields
+          {t("bilingual")}
         </span>
         <LocaleTabs value={tab} onChange={setTab} />
       </div>
       <label className="block">
         <span className="text-sm text-ink-soft">
-          Title ({tab.toUpperCase()})
+          {t("title", { tab: tab.toUpperCase() })}
         </span>
         <input
           className="field mt-1"
@@ -123,7 +125,7 @@ export function EventForm(props: Props) {
       </label>
       <label className="block">
         <span className="text-sm text-ink-soft">
-          Description ({tab.toUpperCase()})
+          {t("description", { tab: tab.toUpperCase() })}
         </span>
         <textarea
           className="field mt-1"
@@ -134,7 +136,7 @@ export function EventForm(props: Props) {
       </label>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="text-sm text-ink-soft">Starts</span>
+          <span className="text-sm text-ink-soft">{t("starts")}</span>
           <input
             type="datetime-local"
             className="field mt-1"
@@ -143,7 +145,9 @@ export function EventForm(props: Props) {
           />
         </label>
         <label className="block">
-          <span className="text-sm text-ink-soft">Ends (optional)</span>
+          <span className="text-sm text-ink-soft">
+            {t("ends")} <span className="text-xs text-ink-soft/70">({t("endsOptional")})</span>
+          </span>
           <input
             type="datetime-local"
             className="field mt-1"
@@ -154,13 +158,15 @@ export function EventForm(props: Props) {
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="text-sm text-ink-soft">Link to album (optional)</span>
+          <span className="text-sm text-ink-soft">
+            {t("linkAlbum")} <span className="text-xs text-ink-soft/70">({t("linkAlbumOptional")})</span>
+          </span>
           <select
             className="field mt-1"
             value={albumId}
             onChange={(e) => setAlbumId(e.target.value)}
           >
-            <option value="">—</option>
+            <option value="">{t("none")}</option>
             {props.albums.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.title}
@@ -169,13 +175,15 @@ export function EventForm(props: Props) {
           </select>
         </label>
         <label className="block">
-          <span className="text-sm text-ink-soft">Link to entry (optional)</span>
+          <span className="text-sm text-ink-soft">
+            {t("linkEntry")} <span className="text-xs text-ink-soft/70">({t("linkEntryOptional")})</span>
+          </span>
           <select
             className="field mt-1"
             value={entryId}
             onChange={(e) => setEntryId(e.target.value)}
           >
-            <option value="">—</option>
+            <option value="">{t("none")}</option>
             {props.entries.map((e) => (
               <option key={e.id} value={e.id}>
                 {e.title}
@@ -193,10 +201,10 @@ export function EventForm(props: Props) {
           onClick={save}
         >
           {pending
-            ? "Saving…"
+            ? t("saving")
             : props.mode === "create"
-              ? "Create event"
-              : "Save changes"}
+              ? t("create")
+              : t("save")}
         </button>
         {props.mode === "edit" && (
           <button
@@ -205,7 +213,7 @@ export function EventForm(props: Props) {
             disabled={pending}
             onClick={remove}
           >
-            Delete event
+            {t("delete")}
           </button>
         )}
       </div>

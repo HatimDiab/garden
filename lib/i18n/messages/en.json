@@ -61,6 +61,193 @@
       "gallery": "Gallery",
       "events": "Events",
       "settings": "Settings"
+    },
+    "login": {
+      "metaTitle": "Sign in",
+      "heading": "Welcome back",
+      "subhead": "Sign in to tend the diary.",
+      "username": "Username",
+      "password": "Password",
+      "submit": "Sign in",
+      "errorInvalid": "Those details didn't match. Try again.",
+      "errorMissing": "Please fill in both fields."
+    },
+    "overview": {
+      "metaTitle": "Overview",
+      "quickPlant": "Quick plant",
+      "quickPlantSub": "Start something new.",
+      "newEntry": "✿ New journal entry",
+      "newAlbum": "❁ New album",
+      "newEvent": "☀ New event",
+      "recentEntries": "Recent journal entries",
+      "recentEntriesEmpty": "No entries yet — start the first page.",
+      "albums": "Albums",
+      "albumsEmpty": "No albums yet.",
+      "upcomingEvents": "Upcoming events",
+      "upcomingEventsEmpty": "Nothing scheduled.",
+      "view": "view →",
+      "untitled": "Untitled",
+      "statusDraft": "draft",
+      "statusPublished": "published"
+    },
+    "journal": {
+      "list": {
+        "metaTitle": "Journal",
+        "heading": "Journal",
+        "newButton": "✿ New entry",
+        "empty": "No entries yet — write the first page.",
+        "updated": "updated {date}"
+      },
+      "new": {
+        "metaTitle": "New entry",
+        "heading": "New entry",
+        "subhead": "A fresh page. Tell today's story."
+      },
+      "edit": {
+        "metaTitle": "Edit entry",
+        "heading": "Edit entry"
+      }
+    },
+    "gallery": {
+      "list": {
+        "metaTitle": "Gallery",
+        "heading": "Gallery",
+        "newButton": "❁ New album",
+        "empty": "No albums yet — gather the first bouquet."
+      },
+      "new": {
+        "metaTitle": "New album",
+        "heading": "New album",
+        "subhead": "Pick a name and a date. You can add photos after."
+      },
+      "edit": {
+        "metaTitle": "Edit album",
+        "heading": "Edit album"
+      }
+    },
+    "events": {
+      "list": {
+        "metaTitle": "Events",
+        "heading": "Events",
+        "newButton": "☀ New event",
+        "empty": "No events yet."
+      },
+      "new": {
+        "metaTitle": "New event",
+        "heading": "New event"
+      },
+      "edit": {
+        "metaTitle": "Edit event",
+        "heading": "Edit event"
+      }
+    },
+    "settings": {
+      "metaTitle": "Settings",
+      "heading": "Settings",
+      "form": {
+        "siteSection": "Site",
+        "passwordSection": "Password",
+        "siteTitle": "Site title ({tab})",
+        "tagline": "Tagline ({tab})",
+        "activeSeason": "Active season label",
+        "aboutText": "About page text ({tab})",
+        "saveSite": "Save site",
+        "currentPassword": "Current password",
+        "newPassword": "New password",
+        "confirmPassword": "Confirm new password",
+        "changePassword": "Change password",
+        "saved": "Saved.",
+        "pwMismatch": "New passwords don't match.",
+        "pwChanged": "Password changed. Please sign in again.",
+        "signInAgain": "Sign in again"
+      }
+    },
+    "forms": {
+      "entry": {
+        "titlePlaceholder": "A title for this page…",
+        "bodyPlaceholder": "Today in the garden…",
+        "bilingual": "Bilingual content",
+        "publishHeading": "Publish",
+        "currentStatus": "Current status:",
+        "statusDraft": "draft",
+        "statusPublished": "published",
+        "publish": "Publish",
+        "saveDraft": "Save draft",
+        "delete": "Delete entry",
+        "deleteConfirm": "Delete this entry? This cannot be undone.",
+        "detailsHeading": "Details ({tab})",
+        "slug": "Slug",
+        "slugOptional": "optional",
+        "excerpt": "Excerpt",
+        "tags": "Tags (comma-separated)",
+        "tagsPlaceholder": "tulips, spring, south bed",
+        "saving": "Saving…"
+      },
+      "album": {
+        "bilingual": "Bilingual fields",
+        "title": "Title ({tab})",
+        "slug": "Slug ({tab})",
+        "slugOptional": "optional — leave blank to share the EN slug",
+        "description": "Description ({tab}, optional)",
+        "date": "Date",
+        "dateOptional": "optional",
+        "saving": "Saving…",
+        "create": "Create album",
+        "save": "Save changes",
+        "delete": "Delete album",
+        "deleteConfirm": "Delete this album and every photo inside it? This cannot be undone."
+      },
+      "albumUploader": {
+        "drop": "Drop photos here, click to choose, or paste",
+        "formats": "JPG, PNG, HEIC, WebP — paste with ⌘V / Ctrl+V too."
+      },
+      "albumGrid": {
+        "bilingual": "Bilingual caption",
+        "captionPlaceholder": "caption ({tab})",
+        "save": "save",
+        "empty": "No photos yet — drop some above.",
+        "selectedCount": "{count} selected",
+        "clickHint": "Click ☐ on photos to select",
+        "clear": "clear",
+        "deleteSelected": "delete selected",
+        "selectAll": "select all",
+        "selectAria": "Select",
+        "deselectAria": "Deselect",
+        "cover": "✿ cover",
+        "makeCover": "make cover",
+        "remove": "remove",
+        "removeConfirm": "Remove this photo?",
+        "removeManyConfirm": "Remove {count} photo(s)?"
+      },
+      "event": {
+        "bilingual": "Bilingual fields",
+        "title": "Title ({tab})",
+        "description": "Description ({tab})",
+        "starts": "Starts",
+        "ends": "Ends",
+        "endsOptional": "optional",
+        "linkAlbum": "Link to album",
+        "linkAlbumOptional": "optional",
+        "linkEntry": "Link to entry",
+        "linkEntryOptional": "optional",
+        "none": "—",
+        "saving": "Saving…",
+        "create": "Create event",
+        "save": "Save changes",
+        "delete": "Delete event",
+        "deleteConfirm": "Delete this event?"
+      },
+      "backup": {
+        "heading": "Database",
+        "description": "Download a snapshot of the SQLite database, or restore a previous one. Uploads are not included — use make backup on the host for a full tarball.",
+        "download": "Download backup",
+        "downloading": "Preparing…",
+        "restoreLabel": "Restore from .db file",
+        "restore": "Restore (restarts app)",
+        "restoring": "Restoring…",
+        "restoreConfirm": "Restoring will replace the current database and restart the app. The current DB will be saved as garden.db.bak-<timestamp> in the data directory. Continue?",
+        "chooseFile": "Choose a .db backup file first."
+      }
     }
   }
 }

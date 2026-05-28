@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
+import { getLocale, getTranslations } from "next-intl/server";
 import { db } from "@/lib/db/client";
 import { albums, images } from "@/lib/db/schema";
 import { AlbumForm } from "@/components/admin/AlbumForm";
@@ -13,8 +14,13 @@ import {
   updateAlbum,
   updateImageCaption,
 } from "../actions";
+import type { Locale } from "@/lib/i18n/routing";
 
-export const metadata = { title: "Edit album" };
+export async function generateMetadata() {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations({ locale, namespace: "admin.gallery.edit" });
+  return { title: t("metaTitle") };
+}
 
 export default async function EditAlbumPage({
   params,

@@ -1,12 +1,21 @@
 import { desc } from "drizzle-orm";
+import { getLocale, getTranslations } from "next-intl/server";
 import { db } from "@/lib/db/client";
 import { albums, entries } from "@/lib/db/schema";
 import { EventForm } from "@/components/admin/EventForm";
 import { createEvent } from "../actions";
+import type { Locale } from "@/lib/i18n/routing";
 
-export const metadata = { title: "New event" };
+export async function generateMetadata() {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations({ locale, namespace: "admin.events.new" });
+  return { title: t("metaTitle") };
+}
 
 export default async function NewEventPage() {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations({ locale, namespace: "admin.events.new" });
+
   const albumOpts = db
     .select({ id: albums.id, title: albums.title })
     .from(albums)
@@ -20,7 +29,7 @@ export default async function NewEventPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-moss-deep">New event</h1>
+      <h1 className="font-display text-3xl text-moss-deep">{t("heading")}</h1>
       <div className="mt-6">
         <EventForm
           mode="create"

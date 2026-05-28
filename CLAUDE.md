@@ -53,8 +53,9 @@ Encrypt, HSTS, no published host port — note the `ports: !override []`, since 
 `[]` would be *appended* and leave 3000 exposed). `docker-compose.traefik.yml` is the
 reverse-proxy stack (start once on the external `web` network). Full Raspberry-Pi /
 ARM walkthrough and the home-network gotchas (open ports, CGNAT, Cloudflare Tunnel
-alternative) are in `DEPLOY.md`. Because the session cookie is `Secure` under
-`NODE_ENV=production`, admin login only works over HTTPS — don't serve prod over HTTP.
+alternative) are in `DEPLOY.md`. The session cookie's `Secure` flag is set per-request
+from `x-forwarded-proto` (or `localhost`), so plain-HTTP LAN access of the local Docker
+container still keeps you logged in; HTTPS behind Traefik gets a Secure cookie.
 
 ## Architecture
 
