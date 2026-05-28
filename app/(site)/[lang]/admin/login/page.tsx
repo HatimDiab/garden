@@ -10,6 +10,7 @@ import {
   setSessionCookie,
 } from "@/lib/auth/session";
 import { Bloom } from "@/components/watercolor/Bloom";
+import { PasswordInput } from "@/components/admin/PasswordInput";
 import { redirect } from "@/lib/i18n/navigation";
 import type { Locale } from "@/lib/i18n/routing";
 
@@ -79,10 +80,8 @@ export default async function LoginPage({
           </label>
           <label className="block">
             <span className="text-sm text-ink-soft">Password</span>
-            <input
-              type="password"
+            <PasswordInput
               name="password"
-              className="field mt-1"
               autoComplete="current-password"
               required
             />

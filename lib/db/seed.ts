@@ -1,5 +1,5 @@
 import { db, schema } from "./client";
-import { hashPassword } from "../auth/password";
+import { hashPassword, verifyPassword } from "../auth/password";
 import { randomId } from "../util/id";
 import { eq } from "drizzle-orm";
 
@@ -16,7 +16,20 @@ async function ensureAdmin() {
     .where(eq(schema.users.username, username))
     .get();
   if (existing) {
-    console.log(`Admin "${username}" already exists; leaving password alone.`);
+    const matches = await verifyPassword(existing.passwordHash, password);
+    if (matches) {
+      console.log(`Admin "${username}" already exists.`);
+      return;
+    }
+    const passwordHash = await hashPassword(password);
+    db.update(schema.users)
+      .set({ passwordHash })
+      .where(eq(schema.users.id, existing.id))
+      .run();
+    db.delete(schema.sessions)
+      .where(eq(schema.sessions.userId, existing.id))
+      .run();
+    console.log(`↻ synced admin "${username}" password from ADMIN_PASSWORD`);
     return;
   }
   const passwordHash = await hashPassword(password);

@@ -2,7 +2,14 @@ import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import Database from "better-sqlite3";
-import { hash } from "@node-rs/argon2";
+import { hash, verify } from "@node-rs/argon2";
+
+const HASH_OPTS = {
+  memoryCost: 19456,
+  timeCost: 2,
+  outputLen: 32,
+  parallelism: 1,
+};
 
 const dataDir = process.env.DATA_DIR || path.join(process.cwd(), "data");
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
@@ -37,18 +44,23 @@ async function ensureAdmin() {
     return;
   }
   const existing = sqlite
-    .prepare("SELECT id FROM users WHERE username = ?")
+    .prepare("SELECT id, password_hash FROM users WHERE username = ?")
     .get(username);
   if (existing) {
-    console.log(`Admin "${username}" already exists.`);
+    const matches = await verify(existing.password_hash, password, HASH_OPTS);
+    if (matches) {
+      console.log(`Admin "${username}" already exists.`);
+      return;
+    }
+    const passwordHash = await hash(password, HASH_OPTS);
+    sqlite
+      .prepare("UPDATE users SET password_hash = ? WHERE id = ?")
+      .run(passwordHash, existing.id);
+    sqlite.prepare("DELETE FROM sessions WHERE user_id = ?").run(existing.id);
+    console.log(`↻ synced admin "${username}" password from ADMIN_PASSWORD`);
     return;
   }
-  const passwordHash = await hash(password, {
-    memoryCost: 19456,
-    timeCost: 2,
-    outputLen: 32,
-    parallelism: 1,
-  });
+  const passwordHash = await hash(password, HASH_OPTS);
   sqlite
     .prepare(
       "INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)",
