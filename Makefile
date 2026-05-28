@@ -1,4 +1,4 @@
-.PHONY: help setup start start-traefik start-production stop restart logs status backup restore clean dev install
+.PHONY: help setup start start-traefik start-production stop restart logs status backup restore clean dev install build
 
 help:
 	@echo "The Garden Diary — make targets · Make-Ziele"
@@ -12,6 +12,8 @@ help:
 	@echo ""
 	@echo "  make start            EN: build + start Docker container"
 	@echo "                        DE: Docker-Container bauen und starten"
+	@echo "  make build            EN: rebuild image and restart container"
+	@echo "                        DE: Image neu bauen und Container neu starten"
 	@echo "  make start-traefik    EN: create 'web' network + start Traefik + start app"
 	@echo "                        DE: 'web'-Netzwerk anlegen, Traefik und App starten"
 	@echo "  make start-production EN: start with Traefik overlay (needs 'web' network)"
@@ -66,6 +68,14 @@ stop:
 
 restart:
 	docker compose restart
+
+build: setup
+	docker compose up -d --build
+	@port=$$(grep -E '^PORT=' .env 2>/dev/null | cut -d= -f2); \
+	  port=$${port:-3000}; \
+	  echo ""; \
+	  echo "→ EN: rebuilt and restarted at http://localhost:$$port"; \
+	  echo "→ DE: neu gebaut und neu gestartet unter http://localhost:$$port"
 
 logs:
 	docker compose logs -f --tail=200
