@@ -75,11 +75,11 @@ When adding a translatable column, add both the base and the `_de` twin to
 ### Routing: two disjoint trees
 
 - **Public** — `app/(site)/[lang]/...` is locale-prefixed (`/en`, `/de`); `localePrefix`
-  is `"always"` (`lib/i18n/routing.ts`). `middleware.ts` runs `next-intl` to detect and
-  rewrite locale. The `[lang]` layout calls `setRequestLocale(lang)` and `notFound()` on
-  unknown locales.
+  is `"always"` (`lib/i18n/routing.ts`). `proxy.ts` (Next 16's renamed "middleware"
+  convention) runs `next-intl` to detect and rewrite locale. The `[lang]` layout calls
+  `setRequestLocale(lang)` and `notFound()` on unknown locales.
 - **Admin** — `app/admin/(dash)/...` is **English-only and NOT locale-prefixed**. The
-  middleware matcher explicitly excludes `admin`, `api`, `uploads`, and `art`, so these
+  proxy matcher explicitly excludes `admin`, `api`, `uploads`, and `art`, so these
   never get a locale segment. Admin forms author both languages side-by-side via
   `components/admin/LocaleTabs.tsx`.
 
