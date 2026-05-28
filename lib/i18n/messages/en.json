@@ -61,6 +61,16 @@
       "gallery": "Gallery",
       "events": "Events",
       "settings": "Settings"
+    },
+    "login": {
+      "metaTitle": "Sign in",
+      "heading": "Welcome back",
+      "subhead": "Sign in to tend the diary.",
+      "username": "Username",
+      "password": "Password",
+      "submit": "Sign in",
+      "errorInvalid": "Those details didn't match. Try again.",
+      "errorMissing": "Please fill in both fields."
     }
   }
 }

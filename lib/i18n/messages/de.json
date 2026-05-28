@@ -61,6 +61,16 @@
       "gallery": "Galerie",
       "events": "Termine",
       "settings": "Einstellungen"
+    },
+    "login": {
+      "metaTitle": "Anmelden",
+      "heading": "Willkommen zurück",
+      "subhead": "Melde dich an, um das Tagebuch zu pflegen.",
+      "username": "Benutzername",
+      "password": "Passwort",
+      "submit": "Anmelden",
+      "errorInvalid": "Diese Angaben passten nicht. Bitte erneut versuchen.",
+      "errorMissing": "Bitte beide Felder ausfüllen."
     }
   }
 }
