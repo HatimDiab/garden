@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter as useIntlRouter } from "@/lib/i18n/navigation";
 import type { JSONContent } from "@tiptap/react";
 import { TiptapEditor } from "./TiptapEditor";
@@ -55,6 +56,7 @@ export function EntryForm({
   saveAction: (data: SaveEntryPayload) => Promise<{ id: string; slug: string }>;
   deleteAction?: (id: string) => Promise<void>;
 }) {
+  const t = useTranslations("admin.forms.entry");
   const router = useIntlRouter();
   const [title, setTitle] = useState(entry?.title ?? "");
   const [titleDe, setTitleDe] = useState(entry?.titleDe ?? "");
@@ -110,7 +112,7 @@ export function EntryForm({
 
   const remove = () => {
     if (!entry || !deleteAction) return;
-    if (!window.confirm("Delete this entry? This cannot be undone.")) return;
+    if (!window.confirm(t("deleteConfirm"))) return;
     startTransition(async () => {
       await deleteAction(entry.id);
       router.push("/admin/journal");
@@ -139,17 +141,13 @@ export function EntryForm({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <span className="text-xs uppercase tracking-widest text-ink-soft">
-            Bilingual content
+            {t("bilingual")}
           </span>
           <LocaleTabs value={tab} onChange={setTab} />
         </div>
         <input
           className="field text-3xl font-display"
-          placeholder={
-            tab === "en"
-              ? "A title for this page…"
-              : "Ein Titel für diese Seite…"
-          }
+          placeholder={t("titlePlaceholder")}
           value={tTitle}
           onChange={(e) => setTTitle(e.target.value)}
         />
@@ -165,22 +163,20 @@ export function EntryForm({
               setBodyHtmlDe(html);
             }
           }}
-          placeholder={
-            tab === "en" ? "Today in the garden…" : "Heute im Garten…"
-          }
+          placeholder={t("bodyPlaceholder")}
         />
       </div>
       <aside className="space-y-4">
         <div className="paper p-4">
-          <h4 className="font-display text-lg text-moss-deep">Publish</h4>
+          <h4 className="font-display text-lg text-moss-deep">{t("publishHeading")}</h4>
           <p className="mt-1 text-sm text-ink-soft">
-            Current status:{" "}
+            {t("currentStatus")}{" "}
             <span
               className={
                 status === "published" ? "text-moss" : "text-honey"
               }
             >
-              {status}
+              {status === "published" ? t("statusPublished") : t("statusDraft")}
             </span>
           </p>
           <div className="mt-3 flex flex-col gap-2">
@@ -190,7 +186,7 @@ export function EntryForm({
               disabled={pending || !title.trim()}
               onClick={() => save("published")}
             >
-              {pending ? "Saving…" : "Publish"}
+              {pending ? t("saving") : t("publish")}
             </button>
             <button
               type="button"
@@ -198,7 +194,7 @@ export function EntryForm({
               disabled={pending || !title.trim()}
               onClick={() => save("draft")}
             >
-              Save draft
+              {t("saveDraft")}
             </button>
             {entry && deleteAction && (
               <button
@@ -207,7 +203,7 @@ export function EntryForm({
                 disabled={pending}
                 onClick={remove}
               >
-                Delete entry
+                {t("delete")}
               </button>
             )}
           </div>
@@ -216,14 +212,14 @@ export function EntryForm({
 
         <div className="paper p-4">
           <h4 className="font-display text-lg text-moss-deep">
-            Details ({tab.toUpperCase()})
+            {t("detailsHeading", { tab: tab.toUpperCase() })}
           </h4>
           <label className="mt-3 block text-sm">
             <span className="text-ink-soft">
-              Slug
+              {t("slug")}
               {tab === "de" && (
                 <span className="ml-2 text-xs text-ink-soft/70">
-                  optional
+                  {t("slugOptional")}
                 </span>
               )}
             </span>
@@ -234,7 +230,7 @@ export function EntryForm({
             />
           </label>
           <label className="mt-3 block text-sm">
-            <span className="text-ink-soft">Excerpt</span>
+            <span className="text-ink-soft">{t("excerpt")}</span>
             <textarea
               className="field mt-1"
               rows={3}
@@ -243,12 +239,12 @@ export function EntryForm({
             />
           </label>
           <label className="mt-3 block text-sm">
-            <span className="text-ink-soft">Tags (comma-separated)</span>
+            <span className="text-ink-soft">{t("tags")}</span>
             <input
               className="field mt-1"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              placeholder="tulips, spring, south bed"
+              placeholder={t("tagsPlaceholder")}
             />
           </label>
         </div>
