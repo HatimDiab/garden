@@ -2,13 +2,23 @@ services:
   garden:
     expose:
       - "3000"
-    ports: []
+    # !override replaces the base file's list — a plain `[]` would be *appended*,
+    # leaving the host:3000 port published and the app reachable over plain HTTP.
+    ports: !override []
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      # HTTPS router — TLS terminated by Traefik via Let's Encrypt
       - "traefik.http.routers.garden.rule=Host(`${GARDEN_HOST:-garden.localhost}`)"
       - "traefik.http.routers.garden.entrypoints=websecure"
       - "traefik.http.routers.garden.tls.certresolver=letsencrypt"
       - "traefik.http.services.garden.loadbalancer.server.port=3000"
+      # Security headers: HSTS (1y), MIME sniff off, clickjacking + referrer
+      - "traefik.http.routers.garden.middlewares=garden-security@docker"
+      - "traefik.http.middlewares.garden-security.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.garden-security.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.garden-security.headers.frameDeny=true"
+      - "traefik.http.middlewares.garden-security.headers.referrerPolicy=strict-origin-when-cross-origin"
     networks:
       - web
 

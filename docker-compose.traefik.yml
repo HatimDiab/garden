@@ -1,0 +1,41 @@
+# Shared reverse proxy — terminates TLS for the garden app (and anything else
+# you put on the `web` network). Start it ONCE, then deploy the app with
+# `make start-production`:
+#
+#   docker network create web                          # first time only
+#   docker compose -f docker-compose.traefik.yml up -d
+#
+# Requires ACME_EMAIL and (for the app) GARDEN_HOST in .env. Let's Encrypt uses
+# the HTTP-01 challenge, so port 80 must be reachable from the public internet.
+services:
+  traefik:
+    image: traefik:v3
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+      - "--providers.docker.network=web"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # Force every plain-HTTP request up to HTTPS (site-wide)
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+      # Let's Encrypt (HTTP-01 challenge on the :80 entrypoint)
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?set ACME_EMAIL in .env}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt"
+    networks:
+      - web
+
+networks:
+  web:
+    external: true

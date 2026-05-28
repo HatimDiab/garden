@@ -32,6 +32,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# traefik / let's encrypt cert store
+/letsencrypt
 
 # vercel
 .vercel
