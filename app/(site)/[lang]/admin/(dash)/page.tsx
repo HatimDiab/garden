@@ -1,12 +1,21 @@
-import Link from "next/link";
 import { desc } from "drizzle-orm";
+import { getLocale, getTranslations } from "next-intl/server";
 import { db } from "@/lib/db/client";
 import { entries, albums, events } from "@/lib/db/schema";
 import { format } from "date-fns";
+import { Link } from "@/lib/i18n/navigation";
+import type { Locale } from "@/lib/i18n/routing";
 
-export const metadata = { title: "Overview" };
+export async function generateMetadata() {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations({ locale, namespace: "admin.overview" });
+  return { title: t("metaTitle") };
+}
 
 export default async function AdminHome() {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations({ locale, namespace: "admin.overview" });
+
   const recentEntries = db
     .select({
       id: entries.id,
@@ -37,28 +46,28 @@ export default async function AdminHome() {
   return (
     <div className="grid gap-6 md:grid-cols-3">
       <section className="paper p-6 md:col-span-3">
-        <h2 className="text-2xl text-moss-deep">Quick plant</h2>
+        <h2 className="text-2xl text-moss-deep">{t("quickPlant")}</h2>
         <p className="mt-1 text-sm text-ink-soft">
-          Start something new.
+          {t("quickPlantSub")}
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link href="/admin/journal/new" className="btn">
-            ✿ New journal entry
+            {t("newEntry")}
           </Link>
           <Link href="/admin/gallery/new" className="btn">
-            ❁ New album
+            {t("newAlbum")}
           </Link>
           <Link href="/admin/events/new" className="btn">
-            ☀ New event
+            {t("newEvent")}
           </Link>
         </div>
       </section>
 
       <section className="paper p-6 md:col-span-2">
-        <h3 className="text-xl text-moss-deep">Recent journal entries</h3>
+        <h3 className="text-xl text-moss-deep">{t("recentEntries")}</h3>
         <ul className="mt-3 divide-y divide-sage/20">
           {recentEntries.length === 0 && (
-            <li className="py-6 text-ink-soft">No entries yet — start the first page.</li>
+            <li className="py-6 text-ink-soft">{t("recentEntriesEmpty")}</li>
           )}
           {recentEntries.map((e) => (
             <li key={e.id} className="flex items-center justify-between gap-3 py-3">
@@ -67,18 +76,18 @@ export default async function AdminHome() {
                   href={`/admin/journal/${e.id}`}
                   className="font-display text-lg hover:text-moss-deep"
                 >
-                  {e.title || "Untitled"}
+                  {e.title || t("untitled")}
                 </Link>
                 <div className="text-xs text-ink-soft">
                   {format(e.updatedAt, "PPP")} ·{" "}
                   <span className={e.status === "published" ? "text-moss" : "text-honey"}>
-                    {e.status}
+                    {e.status === "published" ? t("statusPublished") : t("statusDraft")}
                   </span>
                 </div>
               </div>
               {e.status === "published" && (
                 <Link href={`/journal/${e.slug}`} className="link-soft text-sm">
-                  view →
+                  {t("view")}
                 </Link>
               )}
             </li>
@@ -87,10 +96,10 @@ export default async function AdminHome() {
       </section>
 
       <section className="paper p-6">
-        <h3 className="text-xl text-moss-deep">Albums</h3>
+        <h3 className="text-xl text-moss-deep">{t("albums")}</h3>
         <ul className="mt-3 space-y-2">
           {recentAlbums.length === 0 && (
-            <li className="text-ink-soft">No albums yet.</li>
+            <li className="text-ink-soft">{t("albumsEmpty")}</li>
           )}
           {recentAlbums.map((a) => (
             <li key={a.id}>
@@ -101,9 +110,9 @@ export default async function AdminHome() {
           ))}
         </ul>
 
-        <h3 className="mt-6 text-xl text-moss-deep">Upcoming events</h3>
+        <h3 className="mt-6 text-xl text-moss-deep">{t("upcomingEvents")}</h3>
         <ul className="mt-3 space-y-2 text-sm">
-          {upcoming.length === 0 && <li className="text-ink-soft">Nothing scheduled.</li>}
+          {upcoming.length === 0 && <li className="text-ink-soft">{t("upcomingEventsEmpty")}</li>}
           {upcoming.map((ev) => (
             <li key={ev.id}>
               <span className="chip mr-2">{format(ev.startsAt, "MMM d")}</span>

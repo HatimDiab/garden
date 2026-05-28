@@ -1,17 +1,26 @@
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
+import { getLocale, getTranslations } from "next-intl/server";
 import { db } from "@/lib/db/client";
 import { entries, entryTags, tags } from "@/lib/db/schema";
 import { EntryForm } from "@/components/editor/EntryForm";
 import { deleteEntry, saveEntry } from "../actions";
+import type { Locale } from "@/lib/i18n/routing";
 
-export const metadata = { title: "Edit entry" };
+export async function generateMetadata() {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations({ locale, namespace: "admin.journal.edit" });
+  return { title: t("metaTitle") };
+}
 
 export default async function EditEntryPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations({ locale, namespace: "admin.journal.edit" });
+
   const { id } = await params;
   const row = db.select().from(entries).where(eq(entries.id, id)).get();
   if (!row) notFound();
@@ -26,7 +35,7 @@ export default async function EditEntryPage({
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-moss-deep">Edit entry</h1>
+      <h1 className="font-display text-3xl text-moss-deep">{t("heading")}</h1>
       <div className="mt-6">
         <EntryForm
           entry={{

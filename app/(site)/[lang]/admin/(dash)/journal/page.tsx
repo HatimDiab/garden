@@ -1,12 +1,21 @@
-import Link from "next/link";
 import { desc } from "drizzle-orm";
+import { getLocale, getTranslations } from "next-intl/server";
 import { db } from "@/lib/db/client";
 import { entries } from "@/lib/db/schema";
 import { format } from "date-fns";
+import { Link } from "@/lib/i18n/navigation";
+import type { Locale } from "@/lib/i18n/routing";
 
-export const metadata = { title: "Journal" };
+export async function generateMetadata() {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations({ locale, namespace: "admin.journal.list" });
+  return { title: t("metaTitle") };
+}
 
 export default async function AdminJournalList() {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations({ locale, namespace: "admin.journal.list" });
+
   const rows = db
     .select({
       id: entries.id,
@@ -23,16 +32,16 @@ export default async function AdminJournalList() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl text-moss-deep">Journal</h1>
+        <h1 className="font-display text-3xl text-moss-deep">{t("heading")}</h1>
         <Link href="/admin/journal/new" className="btn">
-          ✿ New entry
+          {t("newButton")}
         </Link>
       </div>
 
       <div className="paper mt-6 divide-y divide-sage/20">
         {rows.length === 0 ? (
           <p className="p-6 text-ink-soft">
-            No entries yet — write the first page.
+            {t("empty")}
           </p>
         ) : (
           rows.map((r) => (
@@ -46,7 +55,7 @@ export default async function AdminJournalList() {
                   {r.title || "Untitled"}
                 </div>
                 <div className="mt-1 flex gap-2 text-xs text-ink-soft">
-                  <span>updated {format(r.updatedAt, "PPP")}</span>
+                  <span>{t("updated", { date: format(r.updatedAt, "PPP") })}</span>
                   <span>·</span>
                   <span
                     className={
