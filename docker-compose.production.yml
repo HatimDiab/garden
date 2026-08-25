@@ -14,11 +14,17 @@ services:
       - "traefik.http.routers.garden.tls.certresolver=letsencrypt"
       - "traefik.http.services.garden.loadbalancer.server.port=3000"
       # Security headers: HSTS (1y), MIME sniff off, clickjacking + referrer
-      - "traefik.http.routers.garden.middlewares=garden-security@docker"
+      - "traefik.http.routers.garden.middlewares=garden-security@docker,garden-ratelimit@docker"
       - "traefik.http.middlewares.garden-security.headers.stsSeconds=31536000"
       - "traefik.http.middlewares.garden-security.headers.contentTypeNosniff=true"
       - "traefik.http.middlewares.garden-security.headers.frameDeny=true"
       - "traefik.http.middlewares.garden-security.headers.referrerPolicy=strict-origin-when-cross-origin"
+      # Coarse per-source request cap. The app throttles failed logins itself;
+      # this is the layer that keeps a flood from reaching Node at all, which
+      # matters on a Pi where every login attempt costs a 19 MiB argon2 hash.
+      - "traefik.http.middlewares.garden-ratelimit.ratelimit.average=30"
+      - "traefik.http.middlewares.garden-ratelimit.ratelimit.burst=60"
+      - "traefik.http.middlewares.garden-ratelimit.ratelimit.period=1m"
     networks:
       - web
 

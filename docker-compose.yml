@@ -5,12 +5,16 @@ services:
     container_name: garden-diary
     restart: unless-stopped
     ports:
-      - "${PORT:-3000}:3000"
+      # Defaults to every interface, because LAN access over plain HTTP is a
+      # supported mode here (the session cookie drops its Secure flag to suit).
+      # Set BIND_ADDR=127.0.0.1 in .env to keep the admin UI on this host only.
+      - "${BIND_ADDR:-0.0.0.0}:${PORT:-3000}:3000"
     environment:
       SITE_TITLE: ${SITE_TITLE:-The Garden Diary}
       SITE_TAGLINE: ${SITE_TAGLINE:-Pages from our garden, petal by petal.}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-gardener}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_PASSWORD_FORCE_RESET: ${ADMIN_PASSWORD_FORCE_RESET:-}
       NODE_ENV: production
       DATA_DIR: /data
     volumes:

@@ -30,6 +30,11 @@ export async function GET(
     return new NextResponse(new Uint8Array(buf), {
       headers: {
         "content-type": type,
+        // The pipeline only ever writes webp, but this path serves whatever is
+        // in the uploads dir — nosniff stops a browser from re-interpreting an
+        // octet-stream fallback as something executable.
+        "x-content-type-options": "nosniff",
+        "content-disposition": "inline",
         "cache-control": "public, max-age=31536000, immutable",
       },
     });

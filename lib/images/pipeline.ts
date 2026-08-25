@@ -49,9 +49,13 @@ export async function storeImage(
   await ensureDir();
   const buf = Buffer.from(await file.arrayBuffer());
 
-  const pipeline = sharp(buf, { failOn: "none" }).rotate();
+  // `failOn: "none"` swallowed every decoder complaint, so malformed or
+  // truncated input was processed rather than rejected. "warning" still tolerates
+  // the merely-untidy files a phone camera produces, but stops on real corruption.
+  const pipeline = sharp(buf, { failOn: "warning" }).rotate();
   const meta = await pipeline.metadata();
   if (!meta.width || !meta.height) throw new Error("invalid image");
+  if (meta.format === "svg") throw new Error("SVG uploads are not accepted");
 
   const id = randomId();
   const baseName = id;
