@@ -1,4 +1,4 @@
-.PHONY: help setup start start-traefik start-production stop restart logs status backup restore clean dev install build
+.PHONY: help setup start start-traefik start-production ensure-network stop restart logs status backup restore clean dev install build
 
 help:
 	@echo "The Garden Diary — make targets · Make-Ziele"
@@ -16,8 +16,8 @@ help:
 	@echo "                        DE: Image neu bauen und Container neu starten"
 	@echo "  make start-traefik    EN: create 'web' network + start Traefik + start app"
 	@echo "                        DE: 'web'-Netzwerk anlegen, Traefik und App starten"
-	@echo "  make start-production EN: start with Traefik overlay (needs 'web' network)"
-	@echo "                        DE: mit Traefik-Overlay starten (benötigt das Netzwerk 'web')"
+	@echo "  make start-production EN: start with Traefik overlay ('web' network auto-created)"
+	@echo "                        DE: mit Traefik-Overlay starten ('web'-Netzwerk wird automatisch angelegt)"
 	@echo "  make stop             EN: stop the container"
 	@echo "                        DE: Container stoppen"
 	@echo "  make restart          EN: restart the container"
@@ -55,12 +55,16 @@ start: setup
 	  echo "→ EN: Admin                http://localhost:$$port/admin/login"; \
 	  echo "→ DE: Verwaltung           http://localhost:$$port/admin/login"
 
-start-traefik: setup
+# Creating the network is safe to repeat — `docker network create web` on its own
+# errors once it exists, so guard it and both targets can be re-run at will.
+ensure-network:
 	@docker network inspect web >/dev/null 2>&1 || docker network create web
+
+start-traefik: setup ensure-network
 	docker compose -f docker-compose.traefik.yml up -d
 	$(MAKE) start-production
 
-start-production: setup
+start-production: setup ensure-network
 	docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --build
 
 stop:

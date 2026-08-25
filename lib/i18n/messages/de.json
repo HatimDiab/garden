@@ -70,7 +70,8 @@
       "password": "Passwort",
       "submit": "Anmelden",
       "errorInvalid": "Diese Angaben passten nicht. Bitte erneut versuchen.",
-      "errorMissing": "Bitte beide Felder ausfüllen."
+      "errorMissing": "Bitte beide Felder ausfüllen.",
+      "errorLocked": "Zu viele fehlgeschlagene Anmeldungen. Versuche es in etwa {minutes} Minute(n) erneut."
     },
     "overview": {
       "metaTitle": "Übersicht",

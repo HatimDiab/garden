@@ -32,7 +32,7 @@ pnpm db:migrate         # apply migrations locally (tsx lib/db/migrate.ts)
 pnpm db:seed            # seed admin user + settings from .env
 
 make start              # docker compose up --build (prod-style container)
-make start-production   # + Traefik overlay (needs `docker network create web`)
+make start-production   # + Traefik overlay (creates the `web` network if missing)
 make backup             # tar data/ → backups/ ;  make restore FILE=...
 ```
 
@@ -48,6 +48,12 @@ admin on first run), `SITE_TITLE`, `SITE_TAGLINE`, `PORT` (local container only)
 
 ### Deploying (public HTTPS)
 
+Security headers (CSP, nosniff, frameDeny, Referrer-Policy, Permissions-Policy)
+are set by `next.config.ts` `headers()` so they apply on the plain-HTTP LAN path
+too; Traefik adds HSTS and a per-source rate limit on top for the public deploy.
+The Traefik stack talks to Docker through a `tecnativa/docker-socket-proxy`
+sidecar rather than mounting `/var/run/docker.sock` directly.
+
 `docker-compose.production.yml` runs the app behind **Traefik** (TLS via Let's
 Encrypt, HSTS, no published host port — note the `ports: !override []`, since a plain
 `[]` would be *appended* and leave 3000 exposed). `docker-compose.traefik.yml` is the
@@ -56,6 +62,8 @@ ARM walkthrough and the home-network gotchas (open ports, CGNAT, Cloudflare Tunn
 alternative) are in `DEPLOY.md`. The session cookie's `Secure` flag is set per-request
 from `x-forwarded-proto` (or `localhost`), so plain-HTTP LAN access of the local Docker
 container still keeps you logged in; HTTPS behind Traefik gets a Secure cookie.
+The base compose publishes on `${BIND_ADDR:-0.0.0.0}` — set `BIND_ADDR=127.0.0.1`
+to keep the admin UI off the LAN.
 
 ## Architecture
 
@@ -73,16 +81,23 @@ Never read these columns directly in a page. Use the helpers in `lib/content.ts`
 When adding a translatable column, add both the base and the `_de` twin to
 `lib/db/schema.ts`, then route reads through `pickText`.
 
-### Routing: two disjoint trees
+### Routing: one locale-prefixed tree
 
-- **Public** — `app/(site)/[lang]/...` is locale-prefixed (`/en`, `/de`); `localePrefix`
-  is `"always"` (`lib/i18n/routing.ts`). `proxy.ts` (Next 16's renamed "middleware"
-  convention) runs `next-intl` to detect and rewrite locale. The `[lang]` layout calls
-  `setRequestLocale(lang)` and `notFound()` on unknown locales.
-- **Admin** — `app/admin/(dash)/...` is **English-only and NOT locale-prefixed**. The
-  proxy matcher explicitly excludes `admin`, `api`, `uploads`, and `art`, so these
-  never get a locale segment. Admin forms author both languages side-by-side via
-  `components/admin/LocaleTabs.tsx`.
+Everything user-facing lives under `app/(site)/[lang]/...` and is locale-prefixed
+(`/en`, `/de`); `localePrefix` is `"always"` (`lib/i18n/routing.ts`). `proxy.ts`
+(Next 16's renamed "middleware" convention) runs `next-intl` to detect and rewrite
+locale. The `[lang]` layout calls `setRequestLocale(lang)` and `notFound()` on unknown
+locales.
+
+**Admin is part of that tree**, at `app/(site)/[lang]/admin/(dash)/...` — so admin
+URLs are locale-prefixed too (`/en/admin/journal`, `/de/admin/journal`), and the admin
+chrome is translated. Admin *content* forms still author both languages side-by-side
+via `components/admin/LocaleTabs.tsx`. Use `redirect`/`Link` from
+`lib/i18n/navigation.ts` inside admin as well, since the locale segment is required.
+
+The proxy matcher is `["/((?!api|uploads|art|_next|.*\\..*).*)"]` — it excludes only
+`api`, `uploads`, `art`, `_next`, and anything with a file extension. It does **not**
+exclude `admin`.
 
 Slug lookups query both columns: `where(or(eq(slug, x), eq(slugDe, x)))`.
 
@@ -99,7 +114,22 @@ directly; do **not** `await` them. The DB file is `${DATA_DIR}/garden.db`
 token is random; only its sha256 hash is stored. Cookie is `garden_session`
 (httpOnly, lax, 30-day sliding renewal). `getCurrentUser()` is wrapped in React
 `cache()`. **Guard every admin server action and admin page** with `requireAdmin()`
-(redirects to `/admin/login` when unauthenticated).
+(redirects to `/admin/login` when unauthenticated). API route handlers use
+`getCurrentUser()` directly and return 401 instead, since a redirect is wrong for
+a fetch.
+
+`lib/auth/throttle.ts` rate-limits failed logins in SQLite (`login_attempts`),
+keyed by both `user:<name>` and `ip:<addr>` so neither a targeted account nor a
+username-rotating attacker slips through. Five free attempts, then exponential
+lockout from 30s to 15min, decaying after an hour of quiet. The login action must
+check `checkThrottle()` **before** hashing — each argon2 verify costs 19 MiB, so an
+unthrottled login is a memory-exhaustion DoS as well as a brute-force hole. When
+the username is unknown it still calls `verifyDummyPassword()` so the response
+time does not reveal which accounts exist.
+
+`ADMIN_PASSWORD` only *bootstraps* the admin user. Once that user exists the seed
+leaves the stored hash alone, so a password changed in the UI survives restarts;
+`ADMIN_PASSWORD_FORCE_RESET=1` is the explicit opt-in to overwrite it.
 
 ### Server actions
 
@@ -113,10 +143,15 @@ to mirror.
 
 Uploads are **not** in `public/`. They live in `${DATA_DIR}/uploads` and are served by
 the route handler `app/uploads/[filename]/route.ts` (filename is sanitized against
-`/^[a-z0-9._-]+$/i` and `..`). `lib/images/pipeline.ts` (`storeImage`) uses sharp to
-write a full-size WebP plus 320/768/1600-wide variants and computes a blurhash. The
-upload entry point is `app/api/upload/route.ts`; server-action body limit is 25 MB
-(`next.config.ts`).
+`/^[a-z0-9._-]+$/i` and `..`), served with `nosniff`. `lib/images/pipeline.ts`
+(`storeImage`) uses sharp to write a full-size WebP plus 320/768/1600-wide variants
+and computes a blurhash. The upload entry point is `app/api/upload/route.ts`;
+server-action body limit is 25 MB (`next.config.ts`).
+
+Uploads must satisfy **both** a raster MIME type and a raster extension — an `||`
+here would let `image/svg+xml` reach sharp, and librsvg is the one decoder in the
+pipeline that parses untrusted markup rather than a bitmap. `storeImage` runs sharp
+with `failOn: "warning"` and rejects anything that decodes as SVG.
 
 ### Migrations — two toolchains, keep in sync
 
@@ -127,6 +162,13 @@ upload entry point is `app/api/upload/route.ts`; server-action body limit is 25 
   or seed logic, update **both** the TS scripts and their `.mjs` counterparts.
 
 Generate SQL with `pnpm db:generate` (drizzle-kit → `lib/db/migrations/`).
+
+**Check generated SQL before committing it.** `0001_bilingual.sql` was hand-written
+and has no snapshot in `meta/`, so drizzle-kit diffs from `0000_snapshot.json` and
+re-emits every `_de` column alongside whatever you actually added. Trim those
+already-applied statements; `meta/0002_snapshot.json` records the real current
+schema, so diffs from 0002 onward are clean. Both toolchains hash the `.sql` file
+contents, so an edited-but-unapplied migration stays consistent between them.
 
 ### Other conventions
 

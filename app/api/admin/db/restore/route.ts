@@ -76,18 +76,43 @@ export async function POST(req: NextRequest) {
   const live = path.join(dir, "garden.db");
   const backup = path.join(dir, `garden.db.bak-${stamp}`);
 
-  await fs.rename(live, backup).catch(async (e) => {
-    if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
-  });
-  await fs.rename(staging, live);
+  let movedAside = false;
+  await fs
+    .rename(live, backup)
+    .then(() => {
+      movedAside = true;
+    })
+    .catch(async (e) => {
+      if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+    });
+
+  try {
+    await fs.rename(staging, live);
+  } catch (err) {
+    // The live database is already moved aside at this point. Without this
+    // rollback a failed second rename would leave the app with no database at
+    // all, and the only copy under a name nothing looks for.
+    if (movedAside) await fs.rename(backup, live).catch(() => {});
+    await fs.unlink(staging).catch(() => {});
+    return NextResponse.json(
+      { error: `restore failed, original database kept: ${(err as Error).message}` },
+      { status: 500 },
+    );
+  }
+
   await fs.unlink(path.join(dir, "garden.db-wal")).catch(() => {});
   await fs.unlink(path.join(dir, "garden.db-shm")).catch(() => {});
 
+  // better-sqlite3 holds an open handle to the file we just replaced, so the
+  // process must restart to pick up the new database. Docker's
+  // `restart: unless-stopped` brings it straight back. If the restored database
+  // turns out to be bad, stop the container and rename the `.bak-` file back
+  // over `garden.db`.
   setTimeout(() => process.exit(0), 500);
 
   return NextResponse.json({
     ok: true,
-    backupOf: path.basename(backup),
+    backupOf: movedAside ? path.basename(backup) : null,
     message: "Restore applied. The app is restarting to load the new database.",
   });
 }

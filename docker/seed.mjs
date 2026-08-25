@@ -47,9 +47,16 @@ async function ensureAdmin() {
     .prepare("SELECT id, password_hash FROM users WHERE username = ?")
     .get(username);
   if (existing) {
+    // ADMIN_PASSWORD bootstraps the account; it does NOT own it afterwards.
+    // Re-syncing on every boot would silently revert a password changed in the
+    // admin UI (and drop every session) on the next restart or reboot.
+    if (process.env.ADMIN_PASSWORD_FORCE_RESET !== "1") {
+      console.log(`Admin "${username}" already exists; leaving password as-is.`);
+      return;
+    }
     const matches = await verify(existing.password_hash, password, HASH_OPTS);
     if (matches) {
-      console.log(`Admin "${username}" already exists.`);
+      console.log(`Admin "${username}" already matches ADMIN_PASSWORD.`);
       return;
     }
     const passwordHash = await hash(password, HASH_OPTS);
@@ -57,7 +64,9 @@ async function ensureAdmin() {
       .prepare("UPDATE users SET password_hash = ? WHERE id = ?")
       .run(passwordHash, existing.id);
     sqlite.prepare("DELETE FROM sessions WHERE user_id = ?").run(existing.id);
-    console.log(`↻ synced admin "${username}" password from ADMIN_PASSWORD`);
+    console.log(
+      `↻ ADMIN_PASSWORD_FORCE_RESET=1 — reset admin "${username}" password and cleared sessions`,
+    );
     return;
   }
   const passwordHash = await hash(password, HASH_OPTS);
@@ -84,6 +93,26 @@ function ensureSettings() {
   console.log("✓ settings seeded");
 }
 
+function pruneExpired() {
+  // Sessions are otherwise only cleared lazily when a stale token is presented,
+  // so an abandoned one lingers forever. Same for spent throttle counters.
+  const sessions = sqlite
+    .prepare("DELETE FROM sessions WHERE expires_at < ?")
+    .run(now).changes;
+  let attempts = 0;
+  try {
+    attempts = sqlite
+      .prepare("DELETE FROM login_attempts WHERE last_failure_at < ?")
+      .run(now - 60 * 60).changes;
+  } catch {
+    // table arrives with migration 0002; ignore on older databases
+  }
+  if (sessions || attempts) {
+    console.log(`✓ pruned ${sessions} expired session(s), ${attempts} throttle row(s)`);
+  }
+}
+
 await ensureAdmin();
 ensureSettings();
+pruneExpired();
 sqlite.close();

@@ -2,7 +2,13 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { users } from "@/lib/db/schema";
-import { verifyPassword } from "@/lib/auth/password";
+import { verifyDummyPassword, verifyPassword } from "@/lib/auth/password";
+import {
+  checkThrottle,
+  clearFailures,
+  recordFailure,
+  throttleKeys,
+} from "@/lib/auth/throttle";
 import {
   createSession,
   generateSessionToken,
@@ -28,15 +34,34 @@ async function login(formData: FormData) {
   if (!username || !password) {
     redirect({ href: `/admin/login?error=missing`, locale });
   }
+
+  // Throttle before touching argon2: an unthrottled login is both a brute-force
+  // hole and a cheap memory-exhaustion DoS, since every attempt costs 19 MiB.
+  const keys = await throttleKeys(username);
+  const throttled = checkThrottle(keys);
+  if (throttled.locked) {
+    const mins = Math.max(1, Math.ceil(throttled.retryAfterMs / 60000));
+    redirect({ href: `/admin/login?error=locked&mins=${mins}`, locale });
+  }
+
   const user = db
     .select()
     .from(users)
     .where(eq(users.username, username))
     .get();
-  if (!user) redirect({ href: `/admin/login?error=invalid`, locale });
-  const ok = await verifyPassword(user!.passwordHash, password);
-  if (!ok) redirect({ href: `/admin/login?error=invalid`, locale });
 
+  // Always pay the full hashing cost, even for an unknown username, so timing
+  // cannot be used to enumerate which accounts exist.
+  const ok = user
+    ? await verifyPassword(user.passwordHash, password)
+    : await verifyDummyPassword(password);
+
+  if (!ok) {
+    recordFailure(keys);
+    redirect({ href: `/admin/login?error=invalid`, locale });
+  }
+
+  clearFailures(keys);
   const token = generateSessionToken();
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   await createSession(token, user!.id);
@@ -49,20 +74,22 @@ export default async function LoginPage({
   searchParams,
 }: {
   params: Promise<{ lang: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; mins?: string }>;
 }) {
   const { lang } = await params;
   const locale = lang as Locale;
   const { user } = await getCurrentUser();
   if (user) redirect({ href: "/admin", locale });
-  const { error } = await searchParams;
+  const { error, mins } = await searchParams;
   const t = await getTranslations({ locale, namespace: "admin.login" });
   const msg =
     error === "invalid"
       ? t("errorInvalid")
       : error === "missing"
         ? t("errorMissing")
-        : null;
+        : error === "locked"
+          ? t("errorLocked", { minutes: Math.min(60, Number(mins) || 1) })
+          : null;
 
   return (
     <main className="relative mx-auto flex min-h-[80vh] w-full max-w-md flex-col items-center justify-center px-6">

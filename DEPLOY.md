@@ -30,10 +30,17 @@ cp .env.example .env
 
 ## 2. Start the reverse proxy (once)
 
+The Traefik stack attaches to the external `web` network, so that has to exist
+first. This form is safe to re-run — plain `docker network create web` errors
+once the network is there:
+
 ```bash
-docker network create web                            # first time only
+docker network inspect web >/dev/null 2>&1 || docker network create web
 docker compose -f docker-compose.traefik.yml up -d   # Traefik on :80 / :443
 ```
+
+Or skip both steps: `make start-traefik` ensures the network, starts Traefik,
+and then runs `make start-production` for you.
 
 ## 3. Start the app
 

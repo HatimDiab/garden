@@ -44,11 +44,14 @@ The app serves at `http://localhost:${PORT:-3000}` · Die App ist unter
 ## Production with Traefik · Produktivbetrieb mit Traefik
 
 ```bash
-docker network create web   # EN: once  · DE: einmalig
 # EN: point DNS at this host; set GARDEN_HOST in .env
 # DE: DNS auf diesen Host zeigen lassen; GARDEN_HOST in .env setzen
 make start-production
 ```
+
+**EN** — `make start-production` creates the `web` network itself if it is
+missing, so the command is safe to re-run. **DE** — `make start-production` legt
+das `web`-Netzwerk bei Bedarf selbst an; der Befehl kann beliebig oft laufen.
 
 ## Languages · Sprachen
 

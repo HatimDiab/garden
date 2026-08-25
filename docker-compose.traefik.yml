@@ -8,12 +8,35 @@
 # Requires ACME_EMAIL and (for the app) GARDEN_HOST in .env. Let's Encrypt uses
 # the HTTP-01 challenge, so port 80 must be reachable from the public internet.
 services:
+  # Traefik needs the Docker API to discover containers, but access to
+  # /var/run/docker.sock is equivalent to root on the host — a read-only mount
+  # does not change that, since the danger is the API itself. This proxy sits in
+  # between and exposes only the endpoints Traefik actually reads.
+  dockerproxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    container_name: traefik-dockerproxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      NETWORKS: 1
+      SERVICES: 1
+      TASKS: 1
+      # Everything else, including POST, stays denied.
+      POST: 0
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - web
+
   traefik:
     image: traefik:v3
     container_name: traefik
     restart: unless-stopped
+    depends_on:
+      - dockerproxy
     command:
       - "--providers.docker=true"
+      - "--providers.docker.endpoint=tcp://dockerproxy:2375"
       - "--providers.docker.exposedByDefault=false"
       - "--providers.docker.network=web"
       - "--entrypoints.web.address=:80"
@@ -31,7 +54,6 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./letsencrypt:/letsencrypt"
     networks:
       - web

@@ -17,14 +17,19 @@ export async function POST(req: NextRequest) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "no file" }, { status: 400 });
   }
-  const isImageByMime = file.type.startsWith("image/");
-  const isImageByExt = /\.(jpe?g|png|webp|gif|avif|heic|heif|tiff?)$/i.test(
-    file.name,
-  );
-  if (!isImageByMime && !isImageByExt) {
-    return NextResponse.json({ error: "not an image" }, { status: 400 });
+
+  // Both checks must pass. An `||` here let `image/svg+xml` through the MIME
+  // half and on into sharp/librsvg, which is the one decoder in the pipeline
+  // that parses untrusted markup rather than a bitmap.
+  const RASTER_MIME = /^image\/(jpeg|png|webp|gif|avif|heic|heif|tiff)$/i;
+  const RASTER_EXT = /\.(jpe?g|png|webp|gif|avif|heic|heif|tiff?)$/i;
+  if (!RASTER_MIME.test(file.type) || !RASTER_EXT.test(file.name)) {
+    return NextResponse.json(
+      { error: "unsupported image type" },
+      { status: 415 },
+    );
   }
-  if (file.size > 25 * 1024 * 1024) {
+  if (file.size === 0 || file.size > 25 * 1024 * 1024) {
     return NextResponse.json({ error: "too large" }, { status: 413 });
   }
 

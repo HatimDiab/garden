@@ -28,6 +28,15 @@ export const sessions = sqliteTable("sessions", {
   expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
 });
 
+export const loginAttempts = sqliteTable("login_attempts", {
+  // Scope key, e.g. "user:gardener" or "ip:203.0.113.7" — lets one table
+  // throttle both a targeted account and a username-rotating attacker.
+  key: text("key").primaryKey().notNull(),
+  failures: integer("failures").notNull().default(0),
+  lastFailureAt: integer("last_failure_at", { mode: "timestamp" }).notNull(),
+  lockedUntil: integer("locked_until", { mode: "timestamp" }),
+});
+
 export const images = sqliteTable(
   "images",
   {

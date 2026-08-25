@@ -70,7 +70,8 @@
       "password": "Password",
       "submit": "Sign in",
       "errorInvalid": "Those details didn't match. Try again.",
-      "errorMissing": "Please fill in both fields."
+      "errorMissing": "Please fill in both fields.",
+      "errorLocked": "Too many failed sign-ins. Try again in about {minutes} minute(s)."
     },
     "overview": {
       "metaTitle": "Overview",
