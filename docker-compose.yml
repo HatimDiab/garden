@@ -4,6 +4,11 @@ services:
     image: garden-diary:latest
     container_name: garden-diary
     restart: unless-stopped
+    # Run as the host user that owns ./data. The image builds a uid 1001
+    # `garden` user, but ./data is a bind mount, so the HOST directory's
+    # ownership is what actually governs writes — a uid mismatch shows up as
+    # SQLITE_CANTOPEN on first start. Override in .env if `id -u` differs.
+    user: "${PUID:-1000}:${PGID:-1000}"
     ports:
       # Defaults to every interface, because LAN access over plain HTTP is a
       # supported mode here (the session cookie drops its Secure flag to suit).

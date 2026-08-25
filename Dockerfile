@@ -33,6 +33,11 @@ COPY --from=builder --chown=garden:nodejs /app/lib/db/migrations ./lib/db/migrat
 COPY --chown=garden:nodejs docker ./docker
 
 RUN mkdir -p /data/uploads && chown -R garden:nodejs /data
+# Next writes here at runtime. The container may run as an arbitrary host uid
+# (see `user:` in docker-compose.yml), so this one directory has to be writable
+# by whoever that turns out to be; sticky, like /tmp.
+RUN mkdir -p /app/.next/cache && chmod 1777 /app/.next/cache
+# Default when no `user:` is given. Compose overrides this with PUID:PGID.
 USER garden
 EXPOSE 3000
 ENTRYPOINT ["/sbin/tini", "--", "/app/docker/entrypoint.sh"]
