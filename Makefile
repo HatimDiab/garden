@@ -1,4 +1,4 @@
-.PHONY: help setup start start-traefik start-production ensure-network stop restart logs status backup restore clean dev install build
+.PHONY: help setup start start-traefik start-production ensure-network ensure-data stop restart logs status backup restore clean dev install build
 
 help:
 	@echo "The Garden Diary — make targets · Make-Ziele"
@@ -45,7 +45,12 @@ setup:
 dev: setup
 	DATA_DIR=./data pnpm dev
 
-start: setup
+# Create ./data as the invoking user. If Docker creates it first, it lands
+# root-owned and the container (running as PUID:PGID) cannot write the database.
+ensure-data:
+	@mkdir -p data/uploads
+
+start: setup ensure-data
 	docker compose up -d --build
 	@port=$$(grep -E '^PORT=' .env 2>/dev/null | cut -d= -f2); \
 	  port=$${port:-3000}; \
@@ -64,7 +69,7 @@ start-traefik: setup ensure-network
 	docker compose -f docker-compose.traefik.yml up -d
 	$(MAKE) start-production
 
-start-production: setup ensure-network
+start-production: setup ensure-network ensure-data
 	docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --build
 
 stop:

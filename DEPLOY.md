@@ -52,6 +52,36 @@ Open `https://garden.example.com`. Traefik fetches a real certificate on the
 first request (~30 s); `http://` is permanently redirected to `https://`, and an
 HSTS header is sent.
 
+## File ownership on `./data` (first-run gotcha)
+
+SQLite and the uploads live in `./data`, bind-mounted to `/data`. A bind mount
+takes the **host** directory's ownership, so whichever uid the container runs as
+must own `./data` — a mismatch fails at startup with:
+
+```
+SqliteError: unable to open database file   (SQLITE_CANTOPEN)
+```
+
+and the container restart-loops. This never reproduces on macOS, where Docker
+Desktop's filesystem layer papers over ownership; it bites on real Linux hosts
+like the Pi.
+
+The container therefore runs as `PUID:PGID` from `.env`, defaulting to
+`1000:1000` — the first login user on Raspberry Pi OS, Debian and Ubuntu. Check
+yours and set it if it differs:
+
+```bash
+id -u    # -> PUID
+id -g    # -> PGID
+```
+
+`make start` / `make start-production` create `./data` themselves so it belongs
+to you rather than to Docker. If a previous run already left it root-owned:
+
+```bash
+sudo chown -R "$(id -u):$(id -g)" data
+```
+
 ## Building on the Pi
 
 `make start-production` builds locally (slow first time: native compiles +

@@ -65,6 +65,15 @@ container still keeps you logged in; HTTPS behind Traefik gets a Secure cookie.
 The base compose publishes on `${BIND_ADDR:-0.0.0.0}` — set `BIND_ADDR=127.0.0.1`
 to keep the admin UI off the LAN.
 
+The container runs as `user: "${PUID:-1000}:${PGID:-1000}"`. `./data` is a bind
+mount, so the **host** directory's ownership governs writes regardless of the uid
+1001 `garden` user baked into the image; a mismatch fails as `SQLITE_CANTOPEN` in
+`docker/migrate.mjs` and restart-loops the container. macOS hides this, real Linux
+hosts do not. The `ensure-data` make target creates `./data` as the invoking user
+so Docker cannot claim it for root first. Runtime writes go only to `/data`
+(there is no `next/image` optimizer cache and no ISR), which is what makes running
+as an arbitrary uid safe.
+
 ## Architecture
 
 ### Bilingual content model — the central pattern
