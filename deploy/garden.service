@@ -1,0 +1,38 @@
+# The Garden Diary — systemd unit
+#
+# Starts the compose stack at boot and gives you systemctl control over it.
+# Install:  see "Running as a dedicated service user" in DEPLOY.md
+#
+# This unit runs as root because it talks to the Docker daemon. The APP does
+# not: docker-compose.yml sets `user: "${PUID}:${PGID}"`, so the container
+# itself runs as the unprivileged `garden` account that owns the files.
+#
+# The alternative — running this unit as `garden` and adding that account to
+# the `docker` group — would NOT be more secure. Membership in `docker` is
+# equivalent to root on the host, because it lets you start a container that
+# bind-mounts /. Keeping the daemon call root-owned and the container
+# unprivileged is the honest split.
+
+[Unit]
+Description=The Garden Diary
+Documentation=https://github.com/HatimDiab/garden
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/garden
+
+# Plain HTTP on the LAN. For the public HTTPS deploy, add the Traefik overlay:
+#   ExecStart=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --remove-orphans
+ExecStart=/usr/bin/docker compose up -d --remove-orphans
+ExecStop=/usr/bin/docker compose down
+ExecReload=/usr/bin/docker compose up -d --build --remove-orphans
+
+# Image builds on a Pi are slow; do not let systemd time them out.
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

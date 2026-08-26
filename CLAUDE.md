@@ -74,6 +74,12 @@ so Docker cannot claim it for root first. Runtime writes go only to `/data`
 (there is no `next/image` optimizer cache and no ISR), which is what makes running
 as an arbitrary uid safe.
 
+`deploy/garden.service` is a systemd unit for an always-on host: it starts the
+compose stack at boot and gives `systemctl` control. The unit runs as root because
+it calls the Docker daemon; the app still runs unprivileged via `PUID`/`PGID`.
+Putting the service account in the `docker` group instead would be equivalent to
+granting it root, so don't. Setup lives in DEPLOY.md.
+
 ## Architecture
 
 ### Bilingual content model — the central pattern

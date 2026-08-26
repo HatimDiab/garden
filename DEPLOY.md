@@ -82,6 +82,88 @@ to you rather than to Docker. If a previous run already left it root-owned:
 sudo chown -R "$(id -u):$(id -g)" data
 ```
 
+## Running as a dedicated service user (auto-start at boot)
+
+By default the stack runs from a login user's home directory and only comes back
+after a reboot because of `restart: unless-stopped`. For an always-on Pi it is
+cleaner to give the app its own account and a systemd unit.
+
+**What runs as what.** The systemd unit runs as root, because it talks to the
+Docker daemon. The *application* does not: `docker-compose.yml` sets
+`user: "${PUID}:${PGID}"`, so the container runs as the unprivileged `garden`
+account that owns the files.
+
+Do **not** "fix" this by adding `garden` to the `docker` group instead. That
+group is equivalent to root on the host — a member can start a container that
+bind-mounts `/` — so it would hand the service account full privileges while
+looking like a hardening step.
+
+### 1. Create the account
+
+```bash
+sudo adduser --system --group --home /opt/garden --shell /usr/sbin/nologin garden
+id -u garden && id -g garden        # note both numbers
+```
+
+`--system` means no password and no interactive login. The uid lands below 1000,
+which is why the next step sets `PUID`/`PGID` explicitly rather than relying on
+the 1000 default.
+
+### 2. Move the project into place
+
+```bash
+sudo git clone https://github.com/HatimDiab/garden.git /opt/garden
+sudo cp ~/garden/.env /opt/garden/.env          # keep your existing settings
+sudo cp -a ~/garden/data /opt/garden/           # keep your database + uploads
+sudo chown -R garden:garden /opt/garden
+```
+
+### 3. Point PUID/PGID at the new account
+
+```bash
+sudo -u garden tee -a /opt/garden/.env >/dev/null <<EOF
+PUID=$(id -u garden)
+PGID=$(id -g garden)
+EOF
+```
+
+Remove any earlier `PUID=`/`PGID=` lines so the file has one of each; the last
+value wins, but a duplicated key is a trap for the next person.
+
+### 4. Install and enable the unit
+
+```bash
+sudo cp /opt/garden/deploy/garden.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now garden.service
+```
+
+### 5. Verify
+
+```bash
+systemctl status garden.service --no-pager
+docker inspect garden-diary --format 'runs as: {{.Config.User}}'   # the garden uid:gid
+docker compose -f /opt/garden/docker-compose.yml ps
+```
+
+### Day-to-day
+
+```bash
+sudo systemctl start garden          # start
+sudo systemctl stop garden           # stop
+sudo systemctl restart garden        # restart
+sudo systemctl reload garden         # rebuild the image and restart
+journalctl -u garden -f              # logs from the unit
+docker compose -f /opt/garden/docker-compose.yml logs -f   # logs from the app
+```
+
+`make backup` and `make restore` now need `sudo` (or `sudo -u garden`), since
+`/opt/garden/data` belongs to the service account rather than to you.
+
+For the public HTTPS deploy, edit `ExecStart` in the unit to add
+`-f docker-compose.production.yml`, and note the Traefik stack is a separate
+compose project that needs starting too.
+
 ## Building on the Pi
 
 `make start-production` builds locally (slow first time: native compiles +
