@@ -1,23 +1,26 @@
-# The Garden Diary — systemd unit
+# The Garden Diary — systemd unit (public HTTPS / production)
 #
-# Starts the compose stack at boot and gives you systemctl control over it.
-# Install:  see "Running as a dedicated service user" in DEPLOY.md
+# Starts the app behind Traefik at boot and gives you systemctl control.
+# Install: see "Running as a service user with auto-start" in DEPLOY.md
 #
 # This unit runs as root because it talks to the Docker daemon. The APP does
-# not: docker-compose.yml sets `user: "${PUID}:${PGID}"`, so the container
-# itself runs as the unprivileged `garden` account that owns the files.
+# not: docker-compose.yml sets `user: "${PUID}:${PGID}"`, so the container runs
+# as the unprivileged account that owns the files (karl:www in the guide).
 #
-# The alternative — running this unit as `garden` and adding that account to
-# the `docker` group — would NOT be more secure. Membership in `docker` is
-# equivalent to root on the host, because it lets you start a container that
-# bind-mounts /. Keeping the daemon call root-owned and the container
-# unprivileged is the honest split.
+# Do NOT "fix" that by running this unit as karl and adding karl to the `docker`
+# group. Membership in `docker` is equivalent to root on the host — a member can
+# start a container that bind-mounts / — so it would grant full privileges while
+# looking like a hardening step.
+#
+# `--remove-orphans` is deliberately absent: the Traefik stack shares this
+# directory, and with the default project name compose would treat its
+# containers as orphans of this project and remove them.
 
 [Unit]
 Description=The Garden Diary
 Documentation=https://github.com/HatimDiab/garden
-Requires=docker.service
-After=docker.service network-online.target
+Requires=docker.service traefik.service
+After=docker.service traefik.service network-online.target
 Wants=network-online.target
 
 [Service]
@@ -25,11 +28,9 @@ Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/opt/garden
 
-# Plain HTTP on the LAN. For the public HTTPS deploy, add the Traefik overlay:
-#   ExecStart=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --remove-orphans
-ExecStart=/usr/bin/docker compose up -d --remove-orphans
-ExecStop=/usr/bin/docker compose down
-ExecReload=/usr/bin/docker compose up -d --build --remove-orphans
+ExecStart=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
+ExecStop=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.production.yml down
+ExecReload=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --build
 
 # Image builds on a Pi are slow; do not let systemd time them out.
 TimeoutStartSec=0
