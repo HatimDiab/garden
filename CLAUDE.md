@@ -74,6 +74,18 @@ so Docker cannot claim it for root first. Runtime writes go only to `/data`
 (there is no `next/image` optimizer cache and no ISR), which is what makes running
 as an arbitrary uid safe.
 
+`deploy/garden.service` and `deploy/traefik.service` are systemd units for an
+always-on host: they start the production stack at boot and give `systemctl`
+control. The units run as root because they call the Docker daemon; the app still
+runs unprivileged via `PUID`/`PGID`. Putting the service account in the `docker`
+group instead would be equivalent to granting it root, so don't. Setup lives in
+DEPLOY.md.
+
+Both compose stacks share one directory, so they would default to the same
+project name (`garden`) and each would treat the other's containers as orphans.
+The Traefik stack must therefore always be invoked with `-p traefik`, and the app
+stack must not use `--remove-orphans`.
+
 ## Architecture
 
 ### Bilingual content model — the central pattern

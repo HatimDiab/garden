@@ -36,7 +36,7 @@ once the network is there:
 
 ```bash
 docker network inspect web >/dev/null 2>&1 || docker network create web
-docker compose -f docker-compose.traefik.yml up -d   # Traefik on :80 / :443
+docker compose -p traefik -f docker-compose.traefik.yml up -d   # Traefik on :80 / :443
 ```
 
 Or skip both steps: `make start-traefik` ensures the network, starts Traefik,
@@ -81,6 +81,118 @@ to you rather than to Docker. If a previous run already left it root-owned:
 ```bash
 sudo chown -R "$(id -u):$(id -g)" data
 ```
+
+## Running as a service user with auto-start
+
+For an always-on Pi, give the app its own unprivileged account and let systemd
+start it at boot.
+
+**What runs as what.** The systemd units run as root, because they talk to the
+Docker daemon. The *application* does not: `docker-compose.yml` sets
+`user: "${PUID}:${PGID}"`, so the container runs as the unprivileged account
+that owns the files.
+
+Do **not** instead run the units as that account and add it to the `docker`
+group. Membership in `docker` is equivalent to root on the host — a member can
+start a container that bind-mounts `/` — so it would hand the service account
+full privileges while looking like a hardening step.
+
+### 1. Create the account
+
+```bash
+sudo groupadd --system www 2>/dev/null || true
+sudo useradd --system --gid www --home-dir /opt/garden \
+     --shell /usr/sbin/nologin karl
+id karl        # note the uid, and the www gid
+```
+
+`--system` plus `nologin` means no password and no interactive login: `karl`
+exists only to own files and run the container.
+
+### 2. Move the project into place
+
+```bash
+sudo git clone https://github.com/HatimDiab/garden.git /opt/garden
+sudo cp ~/garden/.env /opt/garden/.env       # keep your settings
+sudo cp -a ~/garden/data /opt/garden/        # keep database + uploads
+sudo chown -R karl:www /opt/garden
+```
+
+### 3. Point the container at that account
+
+```bash
+sudo sed -i '/^PUID=/d;/^PGID=/d' /opt/garden/.env
+printf 'PUID=%s\nPGID=%s\n' "$(id -u karl)" "$(getent group www | cut -d: -f3)" \
+  | sudo tee -a /opt/garden/.env
+```
+
+Production also needs these in `.env`, or Traefik will not serve anything:
+
+```
+GARDEN_HOST=garden.example.com     # a real domain resolving to this Pi
+ACME_EMAIL=you@example.com
+```
+
+### 4. Install and enable both units
+
+The app is served *through* Traefik, so there are two stacks and two units.
+`garden.service` declares `Requires=`/`After=traefik.service`, so enabling both
+is enough — systemd handles the ordering at boot.
+
+```bash
+sudo cp /opt/garden/deploy/traefik.service /etc/systemd/system/
+sudo cp /opt/garden/deploy/garden.service  /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now traefik.service garden.service
+```
+
+### 5. Verify
+
+```bash
+systemctl status traefik garden --no-pager
+docker inspect garden-diary --format 'runs as: {{.Config.User}}'   # karl's uid:gid
+docker ps
+```
+
+Then reboot once and confirm it comes back on its own:
+
+```bash
+sudo reboot
+# after it returns:
+systemctl is-enabled traefik garden     # enabled / enabled
+systemctl is-active  traefik garden     # active / active
+```
+
+### Day-to-day
+
+```bash
+sudo systemctl start|stop|restart garden
+sudo systemctl reload garden         # rebuild the image and restart
+journalctl -u garden -f              # unit-level logs
+docker compose -f /opt/garden/docker-compose.yml \
+               -f /opt/garden/docker-compose.production.yml logs -f
+```
+
+`make backup` / `make restore` now need `sudo`, since `/opt/garden/data` belongs
+to `karl:www` rather than to you.
+
+### Two compose projects, one directory
+
+Both stacks live in `/opt/garden`, so by default they would share the compose
+project name `garden` and each would consider the other's containers orphans.
+The Traefik unit therefore passes `-p traefik`, and the app unit deliberately
+omits `--remove-orphans`. Keep both if you edit the units.
+
+### Production serves by hostname only
+
+`docker-compose.production.yml` publishes **no host port** (`ports: !override []`)
+and Traefik routes on `Host(\`${GARDEN_HOST}\`)`. So in production the Pi's LAN
+address is not a way in — `http://192.168.x.x:3000` will be refused by design,
+and only `https://${GARDEN_HOST}` works. That needs a public domain pointed at
+this Pi and port 80 reachable for the Let's Encrypt HTTP-01 challenge.
+
+If you want LAN access instead, use `make start` (or a unit whose `ExecStart`
+drops the `-f docker-compose.production.yml`), which publishes port 3000.
 
 ## Building on the Pi
 
