@@ -74,12 +74,20 @@ so Docker cannot claim it for root first. Runtime writes go only to `/data`
 (there is no `next/image` optimizer cache and no ISR), which is what makes running
 as an arbitrary uid safe.
 
-`deploy/garden.service` and `deploy/traefik.service` are systemd units for an
-always-on host: they start the production stack at boot and give `systemctl`
-control. The units run as root because they call the Docker daemon; the app still
-runs unprivileged via `PUID`/`PGID`. Putting the service account in the `docker`
-group instead would be equivalent to granting it root, so don't. Setup lives in
-DEPLOY.md.
+`deploy/garden.service` and `deploy/traefik.service` are systemd **user** units
+for a rootless-Docker host: karl's own `dockerd`, started at boot via
+`loginctl enable-linger`, with no root daemon and no `docker` group membership
+(that group is root-equivalent). `make install-service` installs them into the
+service account's `~/.config/systemd/user`; it refuses to run as root. Setup is
+in DEPLOY.md.
+
+Under rootless Docker `PUID`/`PGID` must be **0**, not the host uid: the
+container's uid 0 maps to the account running dockerd, so 0 inside is karl
+outside and bind-mounted files come out owned by karl. A real numeric uid would
+map into the subordinate 100000+ range and could not write `./data`. Rootful
+Docker wants the host uid:gid instead — the two setups need different values for
+the same variables. `DOCKER_SOCK` likewise points the Traefik socket-proxy at
+`/run/user/<uid>/docker.sock` rather than `/var/run/docker.sock`.
 
 Both compose stacks share one directory, so they would default to the same
 project name (`garden`) and each would treat the other's containers as orphans.

@@ -82,117 +82,155 @@ to you rather than to Docker. If a previous run already left it root-owned:
 sudo chown -R "$(id -u):$(id -g)" data
 ```
 
-## Running as a service user with auto-start
+## Rootless Docker: karl owns everything
 
-For an always-on Pi, give the app its own unprivileged account and let systemd
-start it at boot.
+The strongest option, and the one this repo's units are written for: a `dockerd`
+running as an unprivileged `karl` account in its own user namespace, started at
+boot by systemd's *user* manager.
 
-**What runs as what.** The systemd units run as root, because they talk to the
-Docker daemon. The *application* does not: `docker-compose.yml` sets
-`user: "${PUID}:${PGID}"`, so the container runs as the unprivileged account
-that owns the files.
+Nothing here runs as root, and **karl is not in the `docker` group**. That group
+is root-equivalent on the host — a member can `docker run -v /:/host` and take
+the machine — so joining it would undo the whole point. The common
+`User=karl` + docker-group pattern does not reduce privilege; it makes karl
+permanently root-capable.
 
-Do **not** instead run the units as that account and add it to the `docker`
-group. Membership in `docker` is equivalent to root on the host — a member can
-start a container that bind-mounts `/` — so it would hand the service account
-full privileges while looking like a hardening step.
+### 1. Host prerequisites
 
-### 1. Create the account
+```bash
+sudo apt install -y uidmap dbus-user-session docker-ce-rootless-extras
+```
+
+### 2. Create the account
+
+Rootless needs a real home directory (for `~/.local/share/docker` and
+`~/.config/systemd/user`), so this is a normal account with its password locked
+rather than a `--system` one:
 
 ```bash
 sudo groupadd --system www 2>/dev/null || true
-sudo useradd --system --gid www --home-dir /opt/garden \
-     --shell /usr/sbin/nologin karl
-id karl        # note the uid, and the www gid
+sudo useradd --create-home --gid www --shell /bin/bash karl
+sudo passwd -l karl                      # no password login
+sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 karl
 ```
 
-`--system` plus `nologin` means no password and no interactive login: `karl`
-exists only to own files and run the container.
+Then let karl's services run without a login session — this is what makes them
+start at boot:
 
-### 2. Move the project into place
+```bash
+sudo loginctl enable-linger karl
+```
+
+### 3. Allow :80 and :443 from a rootless daemon
+
+Rootless cannot bind ports below 1024 by default, and Traefik needs both:
+
+```bash
+echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee /etc/sysctl.d/99-garden.conf
+sudo sysctl --system
+```
+
+This lets *any* unprivileged process bind ports from 80 up. On a single-purpose
+Pi that is a fair trade; the alternative is
+`sudo setcap cap_net_bind_service=+ep $(which rootlesskit)`, which grants the
+capability to rootlesskit only.
+
+### 4. Install rootless Docker as karl
+
+```bash
+sudo -u karl -i dockerd-rootless-setuptool.sh install
+sudo -u karl -i systemctl --user enable --now docker
+sudo -u karl -i docker info --format '{{.SecurityOptions}}'   # expect rootless
+```
+
+### 5. Project into place
 
 ```bash
 sudo git clone https://github.com/HatimDiab/garden.git /opt/garden
-sudo cp ~/garden/.env /opt/garden/.env       # keep your settings
-sudo cp -a ~/garden/data /opt/garden/        # keep database + uploads
+sudo cp ~/garden/.env /opt/garden/.env      # keep your settings
+sudo cp -a ~/garden/data /opt/garden/       # keep database + uploads
 sudo chown -R karl:www /opt/garden
 ```
 
-### 3. Point the container at that account
+### 6. Configure `.env` for rootless
+
+**PUID/PGID must be `0` here — this is the counter-intuitive part.** In a
+rootless daemon the container's uid 0 is mapped to the host account running
+dockerd, i.e. karl. So uid 0 *inside* the container is karl *outside*, and
+files on the bind mount come out owned by karl. Setting PUID to karl's real
+numeric uid would instead map to a subordinate uid in the 100000+ range, and
+the container could not write `./data`.
 
 ```bash
-sudo sed -i '/^PUID=/d;/^PGID=/d' /opt/garden/.env
-printf 'PUID=%s\nPGID=%s\n' "$(id -u karl)" "$(getent group www | cut -d: -f3)" \
-  | sudo tee -a /opt/garden/.env
-```
-
-Production also needs these in `.env`, or Traefik will not serve anything:
-
-```
-GARDEN_HOST=garden.example.com     # a real domain resolving to this Pi
+sudo -u karl tee -a /opt/garden/.env >/dev/null <<EOF
+PUID=0
+PGID=0
+DOCKER_SOCK=/run/user/$(id -u karl)/docker.sock
+GARDEN_HOST=garden.example.com
 ACME_EMAIL=you@example.com
+EOF
 ```
 
-### 4. Install and enable both units
+Delete any earlier `PUID=`/`PGID=` lines so each key appears once.
+`DOCKER_SOCK` is what points the Traefik socket-proxy at karl's socket instead
+of the system one.
 
-The app is served *through* Traefik, so there are two stacks and two units.
-`garden.service` declares `Requires=`/`After=traefik.service`, so enabling both
-is enough — systemd handles the ordering at boot.
+### 7. Install and enable the units
 
 ```bash
-sudo cp /opt/garden/deploy/traefik.service /etc/systemd/system/
-sudo cp /opt/garden/deploy/garden.service  /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now traefik.service garden.service
+sudo -u karl -i make -C /opt/garden install-service
 ```
 
-### 5. Verify
+That installs both units into `~karl/.config/systemd/user/`, reloads, and
+enables them. It refuses to run as root, checks the rootless socket exists, and
+warns if lingering is off.
+
+### 8. Verify — including across a reboot
 
 ```bash
-systemctl status traefik garden --no-pager
-docker inspect garden-diary --format 'runs as: {{.Config.User}}'   # karl's uid:gid
-docker ps
-```
-
-Then reboot once and confirm it comes back on its own:
-
-```bash
+sudo -u karl -i make -C /opt/garden service-status
+ps -eo user,comm | grep -E 'dockerd|node|traefik'    # all karl, no root
 sudo reboot
 # after it returns:
-systemctl is-enabled traefik garden     # enabled / enabled
-systemctl is-active  traefik garden     # active / active
+sudo -u karl -i systemctl --user is-active traefik garden
 ```
+
+`ps` showing `karl dockerd` rather than `root dockerd` is the proof the model is
+what you asked for.
 
 ### Day-to-day
 
 ```bash
-sudo systemctl start|stop|restart garden
-sudo systemctl reload garden         # rebuild the image and restart
-journalctl -u garden -f              # unit-level logs
-docker compose -f /opt/garden/docker-compose.yml \
-               -f /opt/garden/docker-compose.production.yml logs -f
+sudo -u karl -i systemctl --user restart garden
+sudo -u karl -i systemctl --user reload garden      # rebuild image, restart
+sudo -u karl -i journalctl --user -u garden -f
+sudo -u karl -i make -C /opt/garden uninstall-service
 ```
-
-`make backup` / `make restore` now need `sudo`, since `/opt/garden/data` belongs
-to `karl:www` rather than to you.
 
 ### Two compose projects, one directory
 
 Both stacks live in `/opt/garden`, so by default they would share the compose
-project name `garden` and each would consider the other's containers orphans.
-The Traefik unit therefore passes `-p traefik`, and the app unit deliberately
-omits `--remove-orphans`. Keep both if you edit the units.
+project name `garden` and each would treat the other's containers as orphans.
+The Traefik unit passes `-p traefik`, and the app unit omits `--remove-orphans`.
+Keep both if you edit the units.
 
 ### Production serves by hostname only
 
 `docker-compose.production.yml` publishes **no host port** (`ports: !override []`)
-and Traefik routes on `Host(\`${GARDEN_HOST}\`)`. So in production the Pi's LAN
-address is not a way in — `http://192.168.x.x:3000` will be refused by design,
-and only `https://${GARDEN_HOST}` works. That needs a public domain pointed at
-this Pi and port 80 reachable for the Let's Encrypt HTTP-01 challenge.
+and Traefik routes on `Host(\`${GARDEN_HOST}\`)`. The Pi's LAN address is not a
+way in — `http://192.168.x.x:3000` is refused by design, and only
+`https://${GARDEN_HOST}` works. That needs a public domain pointed at this Pi and
+port 80 reachable for the Let's Encrypt HTTP-01 challenge.
 
-If you want LAN access instead, use `make start` (or a unit whose `ExecStart`
-drops the `-f docker-compose.production.yml`), which publishes port 3000.
+For LAN access instead, drop `-f docker-compose.production.yml` from the unit's
+`ExecStart` (or just use `make start`), which publishes port 3000.
+
+### Rootless caveats worth knowing
+
+- Overlay networking and some `sysctl`s are restricted; this stack needs neither.
+- Bind mounts must live somewhere karl can read and write — `/opt/garden` is
+  chowned to `karl:www` above for exactly that reason.
+- `docker` run by any *other* user talks to the system daemon, not karl's. Always
+  go through `sudo -u karl -i`, or the containers appear to vanish.
 
 ## Building on the Pi
 

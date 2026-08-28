@@ -1,4 +1,4 @@
-.PHONY: help setup start start-traefik start-production ensure-network ensure-data stop restart logs status backup restore clean dev install build
+.PHONY: help setup start start-traefik start-production ensure-network ensure-data install-service uninstall-service service-status stop restart logs status backup restore clean dev install build
 
 help:
 	@echo "The Garden Diary — make targets · Make-Ziele"
@@ -18,6 +18,12 @@ help:
 	@echo "                        DE: 'web'-Netzwerk anlegen, Traefik und App starten"
 	@echo "  make start-production EN: start with Traefik overlay ('web' network auto-created)"
 	@echo "                        DE: mit Traefik-Overlay starten ('web'-Netzwerk wird automatisch angelegt)"
+	@echo "  make install-service  EN: install+enable rootless systemd user units (run as the service user)"
+	@echo "                        DE: rootlose systemd-User-Units installieren und aktivieren (als Dienstkonto)"
+	@echo "  make service-status   EN: status of the systemd user units"
+	@echo "                        DE: Status der systemd-User-Units"
+	@echo "  make uninstall-service EN: disable and remove the systemd user units"
+	@echo "                        DE: systemd-User-Units deaktivieren und entfernen"
 	@echo "  make stop             EN: stop the container"
 	@echo "                        DE: Container stoppen"
 	@echo "  make restart          EN: restart the container"
@@ -71,6 +77,37 @@ start-traefik: setup ensure-network
 
 start-production: setup ensure-network ensure-data
 	docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --build
+
+# --- systemd user units (rootless Docker) --------------------------------
+# Run these AS THE SERVICE ACCOUNT (e.g. `sudo -u karl -i make install-service`),
+# never with sudo — they install into that account's own ~/.config/systemd/user.
+UNIT_DIR := $(HOME)/.config/systemd/user
+
+install-service:
+	@test "$$(id -u)" != "0" || (echo "EN: run as the service user, not root" && 	  echo "DE: als Dienstkonto ausführen, nicht als root" && exit 1)
+	@command -v docker >/dev/null || (echo "EN: docker not found on PATH" && exit 1)
+	@test -S "$${XDG_RUNTIME_DIR:-/run/user/$$(id -u)}/docker.sock" || 	  (echo "⚠  EN: rootless docker socket not found — run dockerd-rootless-setuptool.sh install first"; 	   echo "⚠  DE: rootloser Docker-Socket fehlt — zuerst dockerd-rootless-setuptool.sh install ausführen"; exit 1)
+	@mkdir -p "$(UNIT_DIR)"
+	install -m 644 deploy/traefik.service "$(UNIT_DIR)/traefik.service"
+	install -m 644 deploy/garden.service  "$(UNIT_DIR)/garden.service"
+	systemctl --user daemon-reload
+	systemctl --user enable --now traefik.service garden.service
+	@loginctl show-user "$$(id -un)" -p Linger | grep -q 'Linger=yes' || ( 	  echo ""; 	  echo "⚠  EN: lingering is OFF — units will NOT start at boot."; 	  echo "   Run as an admin:  sudo loginctl enable-linger $$(id -un)"; 	  echo "⚠  DE: Linger ist AUS — Units starten NICHT beim Hochfahren."; 	  echo "   Als Administrator:  sudo loginctl enable-linger $$(id -un)")
+	@echo "→ EN: installed. Check with 'make service-status'."
+	@echo "→ DE: installiert. Prüfen mit 'make service-status'."
+
+service-status:
+	@systemctl --user status traefik.service garden.service --no-pager || true
+	@echo ""
+	@loginctl show-user "$$(id -un)" -p Linger
+
+uninstall-service:
+	@test "$$(id -u)" != "0" || (echo "EN: run as the service user, not root" && exit 1)
+	-systemctl --user disable --now garden.service traefik.service
+	rm -f "$(UNIT_DIR)/garden.service" "$(UNIT_DIR)/traefik.service"
+	systemctl --user daemon-reload
+	@echo "→ EN: removed. Data in ./data is untouched."
+	@echo "→ DE: entfernt. Daten in ./data bleiben erhalten."
 
 stop:
 	docker compose down

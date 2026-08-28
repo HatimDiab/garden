@@ -24,7 +24,9 @@ services:
       # Everything else, including POST, stays denied.
       POST: 0
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      # Rootless Docker puts the socket in the user's runtime dir, not /var/run.
+      # Set DOCKER_SOCK=/run/user/<uid>/docker.sock in .env for that setup.
+      - "${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock:ro"
     networks:
       - web
 

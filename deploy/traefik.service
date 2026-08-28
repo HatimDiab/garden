@@ -1,10 +1,10 @@
-# Traefik reverse proxy for The Garden Diary — systemd unit
+# Traefik reverse proxy — systemd USER unit (rootless Docker)
 #
-# Install: see "Running as a service user with auto-start" in DEPLOY.md
+# Install to ~/.config/systemd/user/traefik.service for the `karl` account.
+# See "Rootless Docker: karl owns everything" in DEPLOY.md.
 #
-# Runs as root because it talks to the Docker daemon. Traefik itself reaches
-# Docker through the socket-proxy sidecar defined in docker-compose.traefik.yml,
-# not through a direct socket mount.
+# Binding :80 and :443 from a rootless daemon requires
+# net.ipv4.ip_unprivileged_port_start=80 on the host; DEPLOY.md sets it.
 #
 # NOTE the `-p traefik`. Both compose stacks live in the same directory, so they
 # would otherwise share the default project name ("garden") and each would treat
@@ -14,13 +14,14 @@
 Description=Traefik reverse proxy for The Garden Diary
 Documentation=https://github.com/HatimDiab/garden
 Requires=docker.service
-After=docker.service network-online.target
-Wants=network-online.target
+After=docker.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/opt/garden
+
+Environment=DOCKER_HOST=unix://%t/docker.sock
 
 # The `web` network is external and shared; create it if this is a cold boot.
 ExecStartPre=/bin/sh -c 'docker network inspect web >/dev/null 2>&1 || docker network create web'
@@ -30,4 +31,4 @@ ExecStop=/usr/bin/docker compose -p traefik -f docker-compose.traefik.yml down
 TimeoutStartSec=0
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
