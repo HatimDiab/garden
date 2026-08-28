@@ -1,4 +1,4 @@
-.PHONY: help setup start start-traefik start-production ensure-network ensure-data install-service uninstall-service service-status stop restart logs status backup restore clean dev install build
+.PHONY: help setup start start-traefik start-production ensure-network ensure-data provision-rootless install-service uninstall-service service-status stop restart logs status backup restore clean dev install build
 
 help:
 	@echo "The Garden Diary — make targets · Make-Ziele"
@@ -18,6 +18,8 @@ help:
 	@echo "                        DE: 'web'-Netzwerk anlegen, Traefik und App starten"
 	@echo "  make start-production EN: start with Traefik overlay ('web' network auto-created)"
 	@echo "                        DE: mit Traefik-Overlay starten ('web'-Netzwerk wird automatisch angelegt)"
+	@echo "  make provision-rootless EN: one-time host setup for rootless Docker (run with sudo)"
+	@echo "                        DE: einmalige Host-Einrichtung für rootless Docker (mit sudo)"
 	@echo "  make install-service  EN: install+enable rootless systemd user units (run as the service user)"
 	@echo "                        DE: rootlose systemd-User-Units installieren und aktivieren (als Dienstkonto)"
 	@echo "  make service-status   EN: status of the systemd user units"
@@ -77,6 +79,46 @@ start-traefik: setup ensure-network
 
 start-production: setup ensure-network ensure-data
 	docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --build
+
+# --- one-time host provisioning for rootless Docker ----------------------
+# Run once, with sudo:  sudo make provision-rootless
+# Override the defaults if you want a different account:
+#   sudo make provision-rootless SERVICE_USER=karl SERVICE_GROUP=www
+# Every step is guarded, so re-running is safe.
+SERVICE_USER  ?= karl
+SERVICE_GROUP ?= www
+SUBID_START   ?= 100000
+SUBID_COUNT   ?= 65536
+
+provision-rootless:
+	@test "$$(id -u)" = "0" || (echo "EN: run with sudo: sudo make provision-rootless" && 	  echo "DE: mit sudo ausführen: sudo make provision-rootless" && exit 1)
+	@echo "→ packages"
+	@if command -v apt-get >/dev/null; then 	  apt-get update -qq && 	  apt-get install -y -qq uidmap dbus-user-session docker-ce-rootless-extras 	    || echo "⚠  install uidmap / dbus-user-session / docker-ce-rootless-extras manually"; 	else echo "⚠  not apt-based — install uidmap, dbus-user-session, docker-ce-rootless-extras manually"; fi
+	@echo "→ group $(SERVICE_GROUP)"
+	@getent group $(SERVICE_GROUP) >/dev/null || groupadd --system $(SERVICE_GROUP)
+	@echo "→ user $(SERVICE_USER)"
+	@# A real home is required: rootless keeps ~/.local/share/docker and the
+	@# user units in ~/.config/systemd/user. Password is locked, so no login.
+	@id -u $(SERVICE_USER) >/dev/null 2>&1 || ( 	  useradd --create-home --gid $(SERVICE_GROUP) --shell /bin/bash $(SERVICE_USER) && 	  passwd -l $(SERVICE_USER) >/dev/null)
+	@echo "→ subordinate uid/gid ranges"
+	@grep -q "^$(SERVICE_USER):" /etc/subuid 2>/dev/null || 	  usermod --add-subuids $(SUBID_START)-$$(( $(SUBID_START) + $(SUBID_COUNT) - 1 )) $(SERVICE_USER)
+	@grep -q "^$(SERVICE_USER):" /etc/subgid 2>/dev/null || 	  usermod --add-subgids $(SUBID_START)-$$(( $(SUBID_START) + $(SUBID_COUNT) - 1 )) $(SERVICE_USER)
+	@echo "→ lingering (so the units start at boot without a login session)"
+	@loginctl enable-linger $(SERVICE_USER)
+	@echo "→ unprivileged port range (Traefik binds :80 and :443)"
+	@# Rootless cannot bind <1024 by default. This lets any unprivileged process
+	@# bind from 80 up; narrower alternative is setcap on rootlesskit.
+	@test -f /etc/sysctl.d/99-garden.conf || 	  echo 'net.ipv4.ip_unprivileged_port_start=80' > /etc/sysctl.d/99-garden.conf
+	@sysctl --system >/dev/null
+	@echo "→ rootless docker for $(SERVICE_USER)"
+	@sudo -u $(SERVICE_USER) -i dockerd-rootless-setuptool.sh install 2>&1 | tail -3 || 	  echo "⚠  rootless setup reported an issue — check the output above"
+	@sudo -u $(SERVICE_USER) -i systemctl --user enable --now docker || true
+	@echo ""
+	@echo "→ EN: host ready. Next: put the project in place, set PUID=0 PGID=0"
+	@echo "      and DOCKER_SOCK in .env, then:"
+	@echo "      sudo -u $(SERVICE_USER) -i make -C /opt/garden install-service"
+	@echo "→ DE: Host bereit. Danach Projekt ablegen, PUID=0 PGID=0 und"
+	@echo "      DOCKER_SOCK in .env setzen, dann install-service ausführen."
 
 # --- systemd user units (rootless Docker) --------------------------------
 # Run these AS THE SERVICE ACCOUNT (e.g. `sudo -u karl -i make install-service`),

@@ -77,8 +77,11 @@ as an arbitrary uid safe.
 `deploy/garden.service` and `deploy/traefik.service` are systemd **user** units
 for a rootless-Docker host: karl's own `dockerd`, started at boot via
 `loginctl enable-linger`, with no root daemon and no `docker` group membership
-(that group is root-equivalent). `make install-service` installs them into the
-service account's `~/.config/systemd/user`; it refuses to run as root. Setup is
+(that group is root-equivalent). `sudo make provision-rootless` does the one-time host
+setup (packages, the account, subuid/subgid ranges, `enable-linger`, the
+unprivileged-port sysctl, rootless dockerd); `make install-service` then installs
+the units into the service account's `~/.config/systemd/user`. The first requires
+root, the second refuses it. Setup is
 in DEPLOY.md.
 
 Under rootless Docker `PUID`/`PGID` must be **0**, not the host uid: the

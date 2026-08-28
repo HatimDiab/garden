@@ -94,55 +94,43 @@ the machine — so joining it would undo the whole point. The common
 `User=karl` + docker-group pattern does not reduce privilege; it makes karl
 permanently root-capable.
 
-### 1. Host prerequisites
+### 1. Provision the host (one command)
+
+Clone the repo somewhere first, then:
 
 ```bash
-sudo apt install -y uidmap dbus-user-session docker-ce-rootless-extras
+sudo make provision-rootless
 ```
 
-### 2. Create the account
-
-Rootless needs a real home directory (for `~/.local/share/docker` and
-`~/.config/systemd/user`), so this is a normal account with its password locked
-rather than a `--system` one:
+Override the account if you want different names:
 
 ```bash
-sudo groupadd --system www 2>/dev/null || true
-sudo useradd --create-home --gid www --shell /bin/bash karl
-sudo passwd -l karl                      # no password login
-sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 karl
+sudo make provision-rootless SERVICE_USER=karl SERVICE_GROUP=www
 ```
 
-Then let karl's services run without a login session — this is what makes them
-start at boot:
+Every step is guarded, so re-running it is safe. It does:
+
+- installs `uidmap`, `dbus-user-session`, `docker-ce-rootless-extras`
+- creates the `www` group and the `karl` account — real home (rootless needs
+  `~/.local/share/docker` and `~/.config/systemd/user`), password locked, so no
+  interactive login
+- adds subordinate uid/gid ranges (`100000-165535`) for the user namespace
+- `loginctl enable-linger karl` — **this is what makes the units start at boot**
+  without anyone logging in
+- writes `net.ipv4.ip_unprivileged_port_start=80` to `/etc/sysctl.d/99-garden.conf`,
+  because a rootless daemon cannot bind :80/:443 otherwise. Note this lets any
+  unprivileged process bind from 80 up; the narrower option is
+  `setcap cap_net_bind_service=+ep $(which rootlesskit)`
+- runs `dockerd-rootless-setuptool.sh install` as karl and enables karl's
+  `docker` user service
+
+Verify:
 
 ```bash
-sudo loginctl enable-linger karl
-```
-
-### 3. Allow :80 and :443 from a rootless daemon
-
-Rootless cannot bind ports below 1024 by default, and Traefik needs both:
-
-```bash
-echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee /etc/sysctl.d/99-garden.conf
-sudo sysctl --system
-```
-
-This lets *any* unprivileged process bind ports from 80 up. On a single-purpose
-Pi that is a fair trade; the alternative is
-`sudo setcap cap_net_bind_service=+ep $(which rootlesskit)`, which grants the
-capability to rootlesskit only.
-
-### 4. Install rootless Docker as karl
-
-```bash
-sudo -u karl -i dockerd-rootless-setuptool.sh install
-sudo -u karl -i systemctl --user enable --now docker
 sudo -u karl -i docker info --format '{{.SecurityOptions}}'   # expect rootless
 ```
 
-### 5. Project into place
+### 2. Project into place
 
 ```bash
 sudo git clone https://github.com/HatimDiab/garden.git /opt/garden
@@ -151,7 +139,7 @@ sudo cp -a ~/garden/data /opt/garden/       # keep database + uploads
 sudo chown -R karl:www /opt/garden
 ```
 
-### 6. Configure `.env` for rootless
+### 3. Configure `.env` for rootless
 
 **PUID/PGID must be `0` here — this is the counter-intuitive part.** In a
 rootless daemon the container's uid 0 is mapped to the host account running
@@ -174,7 +162,7 @@ Delete any earlier `PUID=`/`PGID=` lines so each key appears once.
 `DOCKER_SOCK` is what points the Traefik socket-proxy at karl's socket instead
 of the system one.
 
-### 7. Install and enable the units
+### 4. Install and enable the units
 
 ```bash
 sudo -u karl -i make -C /opt/garden install-service
@@ -184,7 +172,7 @@ That installs both units into `~karl/.config/systemd/user/`, reloads, and
 enables them. It refuses to run as root, checks the rootless socket exists, and
 warns if lingering is off.
 
-### 8. Verify — including across a reboot
+### 5. Verify — including across a reboot
 
 ```bash
 sudo -u karl -i make -C /opt/garden service-status
